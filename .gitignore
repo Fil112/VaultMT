@@ -32,3 +32,6 @@ logs/
 # Termux / Linux specific
 .env
 .cache/
+
+# Github
+.gitignoregit rm --cached
