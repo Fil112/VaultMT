@@ -1,0 +1,21 @@
+name: VaultMT
+version: '${version}'
+main: mt.vault.core.VaultMTP
+api-version: '26.1'
+load: POSTWORLD
+authors: [ Keylo ]
+description: Core economy plugin and API with Folia support.
+website: https://github.com/Keylo/VaultMT
+folia-supported: true
+prefix: mt
+
+commands:
+  vaultmt:
+    description: Основная команда плагина.
+    usage: /<command> [subcommand]
+    permission: vaultmt.admin
+
+permissions:
+  vaultmt.admin:
+    description: Полный доступ ко всем командам VaultMT.
+    default: op
