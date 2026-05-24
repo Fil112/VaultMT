@@ -26,6 +26,14 @@ public class VaultMTP extends JavaPlugin {
         this.providerManager = new Provider();
         this.providerManager.setup();
 
+        // Сохраняем стандартный конфиг (если нужно)
+        saveDefaultConfig();
+
+        // Подключаем наш единый обработчик команд
+        if (getCommand("emt") != null) {
+            getCommand("emt").setExecutor(new EmtCommand());
+        }
+
         logInfo("VaultMT успешно запущен! Версия: " + getDescription().getVersion());
     }
 

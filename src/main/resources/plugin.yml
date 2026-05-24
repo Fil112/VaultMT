@@ -12,7 +12,7 @@ prefix: mt
 commands:
   vaultmt:
     description: Основная команда плагина.
-    usage: /<command> [subcommand]
+    usage: /emt
     permission: vaultmt.admin
 
 permissions:
