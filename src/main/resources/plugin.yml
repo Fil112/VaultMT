@@ -10,9 +10,9 @@ folia-supported: true
 prefix: mt
 
 commands:
-  vaultmt:
+  emt:                    # Сюда пишем основную команду
     description: Основная команда плагина.
-    usage: /emt
+    usage: /emt <команда>
     permission: vaultmt.admin
 
 permissions:
