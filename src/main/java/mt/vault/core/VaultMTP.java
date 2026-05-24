@@ -35,6 +35,14 @@ public class VaultMTP extends JavaPlugin {
         }
 
         logInfo("VaultMT успешно запущен! Версия: " + getDescription().getVersion());
+
+        // Регистрация PlaceholderAPI
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new EmtExpansion().register();
+            logInfo("PlaceholderAPI найден! Плейсхолдер %vaultmt_balance% зарегистрирован.");
+        } else {
+            logInfo("PlaceholderAPI не найден. Плейсхолдеры отключены.");
+        }
     }
 
     @Override

@@ -2,6 +2,7 @@ name: VaultMT
 version: '${version}'
 main: mt.vault.core.VaultMTP
 api-version: '26.1'
+softdepend: [PlaceholderAPI]
 load: POSTWORLD
 authors: [ Keylo ]
 description: Core economy plugin and API with Folia support.
