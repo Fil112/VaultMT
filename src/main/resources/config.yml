@@ -41,6 +41,6 @@ api:
 
 # Общие настройки и локализация
 settings:
-  language: "ru_RU"
+  language: "ru_RU" # Скачайте язык для изменения с GitHub и положите в папку languages. https://github.com/Fil112/VaultMT/tree/main/src/main/resources/languages
   check-updates: true
   debug: false

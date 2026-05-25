@@ -6,7 +6,7 @@
 
     <groupId>mt.vault</groupId>
     <artifactId>vaultmt</artifactId>
-    <version>0.0.4-A</version>
+    <version>0.0.4-AS</version>
     <packaging>jar</packaging>
 
     <name>VaultMT</name>
