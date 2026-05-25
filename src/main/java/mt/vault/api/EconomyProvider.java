@@ -65,4 +65,6 @@ public interface EconomyProvider {
      * @return TransactionResult с результатом выполнения операции
      */
     TransactionResult withdraw(UUID uuid, double amount);
+
+    void close();
 }

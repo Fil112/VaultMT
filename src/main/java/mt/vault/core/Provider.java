@@ -23,8 +23,16 @@ public class Provider {
         }
         // Шаг 2: Если ничего не найдено, запускаем свой Standalone режим
         else {
-            plugin.logInfo("Сторонних плагинов не найдено. Запуск встроенной базы данных VaultMT...");
-            // TODO: activeProvider = new InternalEconomyProvider();
+            plugin.logInfo("Сторонних плагинов не найдено. Запуск встроенной базы данных SQLite...");
+
+            // Получаем стартовый баланс из конфига (по умолчанию 100.0)
+            double startBal = plugin.getConfig().getDouble("economy.start-balance", 100.0);
+
+            // Инициализируем провайдер
+            EconomyProvider sqlite = new SQLiteProvider(plugin.getDataFolder(), startBal);
+
+            // Устанавливаем его как активный
+            setProvider(sqlite);
         }
     }
 
@@ -36,6 +44,13 @@ public class Provider {
         this.activeProvider = provider;
         VaultMT.setProvider(provider);
         VaultMTP.getInstance().logInfo("Установлен новый провайдер экономики: " + provider.getName());
+    }
+
+    public void reload() {
+        if (activeProvider != null) {
+            activeProvider.close(); // Закрываем старую базу
+        }
+        setup(); // Заново читаем конфиг и подключаем новую
     }
 
     /**

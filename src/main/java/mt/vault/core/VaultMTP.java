@@ -1,5 +1,6 @@
 package mt.vault.core;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.util.logging.Logger;
 
@@ -8,8 +9,7 @@ public class VaultMTP extends JavaPlugin {
     private static VaultMTP instance;
     private Logger pluginLogger;
     private String prefix;
-
-    // 1. ДОБАВЛЯЕМ ПЕРЕМЕННУЮ ДЛЯ ХРАНЕНИЯ ПРОВАЙДЕРА
+    private LanguageManager langManager;
     private Provider providerManager;
 
     @Override
@@ -17,32 +17,38 @@ public class VaultMTP extends JavaPlugin {
         instance = this;
         pluginLogger = getLogger();
 
+        // Сохраняем стандартный config.yml, если его нет
+        saveDefaultConfig();
+
+        // 1. Инициализируем и загружаем языки ПОСЛЕ сохранения дефолтного конфига
+        this.langManager = new LanguageManager(this);
+        this.langManager.loadMessages();
+
         String ymlPrefix = getDescription().getPrefix();
         this.prefix = (ymlPrefix != null && !ymlPrefix.isEmpty()) ? "[" + ymlPrefix + "] " : "[VaultMT] ";
 
         logInfo("Инициализация ядра VaultMT...");
 
-        // 2. ИНИЦИАЛИЗИРУЕМ МЕНЕДЖЕР И ЗАПУСКАЕМ СЕТАП
         this.providerManager = new Provider();
         this.providerManager.setup();
 
-        // Сохраняем стандартный конфиг (если нужно)
-        saveDefaultConfig();
-
-        // Подключаем наш единый обработчик команд
         if (getCommand("emt") != null) {
             getCommand("emt").setExecutor(new EmtCommand());
         }
 
         logInfo("VaultMT успешно запущен! Версия: " + getDescription().getVersion());
 
-        // Регистрация PlaceholderAPI
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new EmtExpansion().register();
             logInfo("PlaceholderAPI найден! Плейсхолдер %vaultmt_balance% зарегистрирован.");
         } else {
             logInfo("PlaceholderAPI не найден. Плейсхолдеры отключены.");
         }
+    }
+
+    // Геттер для получения менеджера языков из других классов
+    public LanguageManager getLangManager() {
+        return langManager;
     }
 
     @Override

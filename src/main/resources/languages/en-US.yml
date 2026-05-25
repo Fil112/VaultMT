@@ -1,0 +1,20 @@
+# VaultMT Localization — English (en_US)
+# The plugin is not fully translated!
+
+messages:
+  no-permission: "&cYou do not have permission to execute this command!"
+  no-console: "§cЭту команду может использовать только игрок!"
+  player-only: "&cThis command can only be executed by a player!"
+  unknown-command: "&cUnknown command! Use &e/emt help"
+  reload-success: "&a[VaultMT] Configuration and language files successfully reloaded!"
+  error-provider: "&cError: Economy is temporarily unavailable!"
+  stats-loading: "&7Gathering economy data, please wait..."
+  usage-message: "&cUsage: /emt {command} <player> <amount>"
+  no-amount: "&cThe amount cannot be negative!"
+
+  # /emt stats command
+  stats-title: "&7================ &eEMT Statistics &7================"
+  stats-accounts: "&fActive accounts: &e{count}"
+  stats-total: "&fTotal coins in circulation: &e{total}$"
+  stats-richest: "&fRichest player: &b{player} &f(&e{balance}$&f)"
+  stats-footer: "&7=================================================="

@@ -23,19 +23,18 @@ public class EmtCommand implements CommandExecutor {
 
         switch (subCommand) {
             case "reload":
-                // 1. Проверка прав (важно, чтобы обычные игроки не могли перезагрузить плагин)
+                // Проверка прав
                 if (!sender.hasPermission("vaultmt.admin")) {
-                    sender.sendMessage("§cУ вас нет прав для выполнения этой команды!");
+                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-permission"));
                     return true;
                 }
 
-                // 2. Перезагрузка конфигурации из файла config.yml
+                // Перезагрузка настроек из файлов
                 VaultMTP.getInstance().reloadConfig();
+                VaultMTP.getInstance().getLangManager().loadMessages();
+                VaultMTP.getInstance().getProviderManager().reload();
 
-                // TODO в будущем: если при перезагрузке нужно будет переподключаться к базе данных
-                // VaultMTP.getInstance().getProviderManager().setup();
-
-                sender.sendMessage("§a[VaultMT] Конфигурация успешно перезагружена!");
+                sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("reload-success"));
                 break;
 
             case "help":
@@ -44,32 +43,34 @@ public class EmtCommand implements CommandExecutor {
 
             case "version":
                 sender.sendMessage("§7=====================================");
-                sender.sendMessage("§aПлагин: §fVaultMT (§eEMT§f)");
-                sender.sendMessage("§aВерсия: §f0.0.3");
+                sender.sendMessage("§Plugin: §fVaultMT (§eEMT§f)");
+                sender.sendMessage("§Version: §f0.0.4");
                 sender.sendMessage("§7=====================================");
                 break;
 
             case "give":
             case "set":
             case "take":
-                // 1. Проверка прав (обязательно для экономики)
+                // Проверка прав
                 if (!sender.hasPermission("vaultmt.admin")) {
-                    sender.sendMessage("§cУ вас нет прав для выполнения этой команды!");
+                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-permission"));
                     return true;
                 }
 
-                // 2. Проверка аргументов
+                // Проверка аргументов
                 if (args.length < 3) {
-                    sender.sendMessage("§cИспользование: /emt " + subCommand + " <игрок> <сумма>");
+                    String usage = VaultMTP.getInstance().getLangManager().getMessage("usage-message")
+                            .replace("{command}", subCommand);
+                    sender.sendMessage(usage);
                     return true;
                 }
 
-                // 3. Парсинг суммы с защитой от ошибок
+                // Парсинг суммы с защитой от ошибок
                 double amount;
                 try {
                     amount = Double.parseDouble(args[2]);
                     if (amount < 0) {
-                        sender.sendMessage("§cСумма не может быть отрицательной!");
+                        sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-amount"));
                         return true;
                     }
                 } catch (NumberFormatException e) {
@@ -77,7 +78,7 @@ public class EmtCommand implements CommandExecutor {
                     return true;
                 }
 
-                // 4. ПОИСК ИГРОКА (УНИВЕРСАЛЬНЫЙ: ОНЛАЙН И ОФФЛАЙН)
+                // ПОИСК ИГРОКА (УНИВЕРСАЛЬНЫЙ: ОНЛАЙН И ОФФЛАЙН)
                 org.bukkit.OfflinePlayer targetOffline = Bukkit.getOfflinePlayer(args[1]);
 
                 if (!targetOffline.hasPlayedBefore() && !targetOffline.isOnline()) {
@@ -89,10 +90,11 @@ public class EmtCommand implements CommandExecutor {
                 mt.vault.api.EconomyProvider provider = mt.vault.api.VaultMT.getProvider();
                 if (provider == null) {
                     sender.sendMessage("§cОшибка: Экономика временно недоступна!");
+                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("error-provider"));
                     return true;
                 }
 
-                // 5. ИСПОЛНЕНИЕ ЛОГИКИ В ЗАВИСИМОСТИ ОТ КОМАНДЫ
+                // ИСПОЛНЕНИЕ ЛОГИКИ В ЗАВИСИМОСТИ ОТ КОМАНДЫ
                 mt.vault.api.TransactionResult result = null;
 
                 if (subCommand.equals("give")) {
@@ -115,13 +117,13 @@ public class EmtCommand implements CommandExecutor {
                     }
                 }
 
-                // 6. Обработка общих ошибок
+                // Обработка общих ошибок
                 if (result != null && !result.isSuccess() && result.status() != mt.vault.api.TransactionResult.Status.INSUFFICIENT_FUNDS) {
                     sender.sendMessage("§cПроизошла ошибка при операции: " + result.errorMessage());
                     return true;
                 }
 
-                // 7. Уведомление игрока (ТОЛЬКО если он сейчас онлайн)
+                // Уведомление игрока (ТОЛЬКО если он сейчас онлайн)
                 if (result != null && result.isSuccess() && targetOffline.isOnline() && targetOffline.getPlayer() != null) {
                     Player onlineTarget = targetOffline.getPlayer();
                     if (subCommand.equals("give")) {
@@ -134,10 +136,66 @@ public class EmtCommand implements CommandExecutor {
                 }
                 break;
 
+            case "stats":
+                // Команда только для админов
+                if (!sender.hasPermission("vaultmt.admin")) {
+                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-permission"));
+                    return true;
+                }
+
+                mt.vault.api.EconomyProvider statsProvider = mt.vault.api.VaultMT.getProvider();
+                if (statsProvider == null) {
+                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("error-provider"));
+                    return true;
+                }
+
+                sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("stats-loading"));
+
+                // 2. Запускаем асинхронную задачу, чтобы не нагружать основной поток сервера
+                PlatformUtil.runAsync(VaultMTP.getInstance(), () -> {
+                    double totalMoney = 0;
+                    double topBalance = -1;
+                    String richestPlayer = "Никто";
+                    int accountCount = 0;
+
+                    // Перебираем всех игроков, которые когда-либо заходили на сервер
+                    for (org.bukkit.OfflinePlayer op : Bukkit.getOfflinePlayers()) {
+                        if (statsProvider.hasAccount(op.getUniqueId())) {
+                            double bal = statsProvider.getBalance(op.getUniqueId());
+                            totalMoney += bal;
+                            accountCount++;
+
+                            // Ищем самого богатого
+                            if (bal > topBalance) {
+                                topBalance = bal;
+                                richestPlayer = op.getName() != null ? op.getName() : "Неизвестно (" + op.getUniqueId() + ")";
+                            }
+                        }
+                    }
+
+                    // Сохраняем финальные значения для вывода
+                    final double finalTotal = totalMoney;
+                    final String finalRichest = richestPlayer;
+                    final double finalTopBal = topBalance;
+                    final int finalCount = accountCount;
+
+                    // Возвращаемся в основной поток для отправки сообщения
+                    PlatformUtil.runSync(VaultMTP.getInstance(), () -> {
+                        sender.sendMessage("§7================ §eСтатистика EMT §7================");
+                        sender.sendMessage("§fАктивных счетов: §e" + finalCount);
+                        sender.sendMessage("§fВсего монет в обороте: §e" + String.format("%.2f", finalTotal) + "$");
+                        if (finalCount > 0) {
+                            sender.sendMessage("§fСамый богатый игрок: §b" + finalRichest + " §f(§e" + String.format("%.2f", finalTopBal) + "$§f)");
+                        }
+                        sender.sendMessage("§7==================================================");
+                    });
+                });
+                break;
+
             case "pay":
                 // 1. Проверяем, что команду выполняет игрок (консоль не может платить)
                 if (!(sender instanceof Player)) {
-                    sender.sendMessage("§cЭту команду может использовать только игрок!");
+                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-console"));
                     return true;
                 }
 
@@ -227,6 +285,7 @@ public class EmtCommand implements CommandExecutor {
         sender.sendMessage("§7================ §eПомощь EMT §7================");
         sender.sendMessage("§e/emt help §7— Показать это меню");
         sender.sendMessage("§e/emt pay <игрок> <сумма> §7— Перевести деньги игроку");
+        sender.sendMessage("§e/emt stats §7— Показать экономическую статистику сервера");
         if (sender.hasPermission("vaultmt.admin")) {
             sender.sendMessage("§e/emt give <игрок> <сумма> §7— Выдать монеты игроку");
             sender.sendMessage("§e/emt take <игрок> <сумма> §7— Забрать монеты у игрока");
@@ -235,5 +294,5 @@ public class EmtCommand implements CommandExecutor {
             sender.sendMessage("§e/emt reload §7— Перезагрузить конфигурацию плагина");
         }
         sender.sendMessage("§7=========================================");
-    }
+        }
 }

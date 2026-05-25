@@ -6,7 +6,7 @@
 
     <groupId>mt.vault</groupId>
     <artifactId>vaultmt</artifactId>
-    <version>0.0.3-A</version>
+    <version>0.0.4-A</version>
     <packaging>jar</packaging>
 
     <name>VaultMT</name>
@@ -47,6 +47,13 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+            </resource>
+
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.yml</include>
+                </includes>
             </resource>
         </resources>
     </build>
