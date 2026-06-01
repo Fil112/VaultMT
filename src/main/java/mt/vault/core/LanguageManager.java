@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +19,52 @@ public class LanguageManager {
 
     public LanguageManager(VaultMTP plugin) {
         this.plugin = plugin;
-        setupLanguageFolder();
+        init(); // Запускает создание папок, копирование файлов и их загрузку
+    }
+
+    /**
+     * Первичная настройка: создание папки и надежное копирование файлов из JAR.
+     */
+    private void init() {
+        File langFolder = new File(plugin.getDataFolder(), "languages");
+
+        // Создаем папку, если её нет
+        if (!langFolder.exists()) {
+            langFolder.mkdirs();
+        }
+
+        String[] defaultLangs = {"ru_RU.yml", "en_US.yml"};
+
+        for (String fileName : defaultLangs) {
+            File langFile = new File(langFolder, fileName);
+
+            // Ищем поток файла: сначала стандартным методом Bukkit, затем системным загрузчиком Java
+            InputStream in = plugin.getResource("languages/" + fileName);
+            if (in == null) {
+                in = getClass().getResourceAsStream("/languages/" + fileName);
+            }
+
+            if (in != null) {
+                try {
+                    // Используем REPLACE_EXISTING, чтобы перезаписать файл, если он пустой или битый
+                    Files.copy(in, langFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } catch (Exception e) {
+                    plugin.getLogger().severe("Не удалось скопировать файл: " + fileName);
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        in.close();
+                    } catch (Exception ignored) {}
+                }
+            } else {
+                // Если файла реально нет в архиве, пишем предупреждение, но плагин не крашим
+                if (!langFile.exists()) {
+                    plugin.getLogger().warning("Ресурс не найден в JAR: languages/" + fileName);
+                }
+            }
+        }
+
+        // После проверки/создания файлов загружаем их в память
         loadMessages();
     }
 
@@ -30,29 +77,37 @@ public class LanguageManager {
         String fileName = "languages/" + langName + ".yml";
         File langFile = new File(plugin.getDataFolder(), "languages/" + langName + ".yml");
 
-        // Если файла нет на диске, пытаемся вытащить его из ресурсов JAR
+        // Если указанный в конфиге файл не существует, откатываемся к стандарту
         if (!langFile.exists()) {
-            plugin.getLogger().warning("Файл " + langName + ".yml не найден, пытаюсь извлечь из JAR...");
-            // ВАЖНО: используем "/" в начале, чтобы искать от корня JAR
-            InputStream is = plugin.getResource("languages/" + langName + ".yml");
-            if (is != null) {
-                plugin.saveResource("languages/" + langName + ".yml", false);
-            } else {
-                plugin.getLogger().severe("Файл " + langName + ".yml не найден внутри JAR!");
-                return; // Прерываем, так как нет файла для загрузки
-            }
+            plugin.getLogger().warning("Язык " + langName + " не найден! Использую ru_RU.yml");
+            langFile = new File(plugin.getDataFolder(), "languages/ru_RU.yml");
+            fileName = "languages/ru_RU.yml";
         }
 
-        // Загрузка
+        // Если даже стандартный файл не найден, прерываем логику
+        if (!langFile.exists()) {
+            plugin.getLogger().severe("Критическая ошибка: Ни один языковой файл не найден!");
+            return;
+        }
+
+        // Загрузка файла с диска
         FileConfiguration langConfig = YamlConfiguration.loadConfiguration(langFile);
 
         // Подгружаем дефолтные значения из jar на случай, если админ удалил строки вручную
         InputStream defaultStream = plugin.getResource(fileName);
+        if (defaultStream == null) {
+            defaultStream = getClass().getResourceAsStream("/" + fileName);
+        }
+
         if (defaultStream != null) {
             YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(
                     new InputStreamReader(defaultStream, StandardCharsets.UTF_8)
             );
             langConfig.setDefaults(defaultConfig);
+
+            try {
+                defaultStream.close();
+            } catch (Exception ignored) {}
         }
 
         // Переносим все сообщения в хэшмапу и сразу заменяем цветовые коды '&' на '§'
@@ -63,32 +118,8 @@ public class LanguageManager {
                     messageCache.put(key, message.replace('&', '§'));
                 }
             }
-        }
-    }
-
-    /**
-     * Создает папку languages и копирует туда дефолтные файлы, если их нет.
-     */
-    private void setupLanguageFolder() {
-        File langFolder = new File(plugin.getDataFolder(), "languages");
-        if (!langFolder.exists()) langFolder.mkdirs();
-
-        String[] defaultLangs = {"ru_RU.yml", "en_US.yml"};
-
-        for (String fileName : defaultLangs) {
-            File langFile = new File(langFolder, fileName);
-            if (!langFile.exists()) {
-                try (InputStream in = plugin.getResource("languages/" + fileName)) {
-                    if (in != null) {
-                        java.nio.file.Files.copy(in, langFile.toPath());
-                    } else {
-                        plugin.getLogger().warning("Ресурс не найден в JAR: languages/" + fileName);
-                    }
-                } catch (Exception e) {
-                    plugin.getLogger().severe("Не удалось скопировать файл: " + fileName);
-                    e.printStackTrace();
-                }
-            }
+        } else {
+            plugin.getLogger().warning("В файле " + langFile.getName() + " не найдена секция 'messages:'! Сообщения не загружены.");
         }
     }
 

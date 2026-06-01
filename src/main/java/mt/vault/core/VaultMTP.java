@@ -17,27 +17,31 @@ public class VaultMTP extends JavaPlugin {
         instance = this;
         pluginLogger = getLogger();
 
-        // Сохраняем стандартный config.yml, если его нет
+        // 1. Сохраняем стандартный config.yml самым первым
         saveDefaultConfig();
 
-        // 1. Инициализируем и загружаем языки ПОСЛЕ сохранения дефолтного конфига
-        this.langManager = new LanguageManager(this);
-        this.langManager.loadMessages();
-
+        // Устанавливаем префикс для красивых логов
         String ymlPrefix = getDescription().getPrefix();
         this.prefix = (ymlPrefix != null && !ymlPrefix.isEmpty()) ? "[" + ymlPrefix + "] " : "[VaultMT] ";
 
         logInfo("Инициализация ядра VaultMT...");
 
+        // 2. Инициализируем локализацию СРАЗУ ПОСЛЕ конфига, до баз данных и команд
+        this.langManager = new LanguageManager(this);
+        // Метод loadMessages() теперь автоматически вызывается внутри конструктора LanguageManager
+
+        // 3. Подключаем базу данных (SQLite/MySQL) через твой Provider
         this.providerManager = new Provider();
         this.providerManager.setup();
 
+        // 4. Регистрация команд
         if (getCommand("emt") != null) {
             getCommand("emt").setExecutor(new EmtCommand());
         }
 
         logInfo("VaultMT успешно запущен! Версия: " + getDescription().getVersion());
 
+        // 5. Интеграция с PlaceholderAPI
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new EmtExpansion().register();
             logInfo("PlaceholderAPI найден! Плейсхолдер %vaultmt_balance% зарегистрирован.");
@@ -46,14 +50,10 @@ public class VaultMTP extends JavaPlugin {
         }
     }
 
-    // Геттер для получения менеджера языков из других классов
-    public LanguageManager getLangManager() {
-        return langManager;
-    }
-
     @Override
     public void onDisable() {
         logInfo("Выключение VaultMT...");
+        // В будущем здесь можно добавить providerManager.close(); для безопасного отключения БД
         logInfo("Плагин выключен.");
     }
 
@@ -61,11 +61,18 @@ public class VaultMTP extends JavaPlugin {
         getServer().getConsoleSender().sendMessage(prefix + "§a" + message);
     }
 
+    // ==========================================
+    // ГЕТТЕРЫ ДЛЯ ДОСТУПА ИЗ ДРУГИХ КЛАССОВ
+    // ==========================================
+
     public static VaultMTP getInstance() {
         return instance;
     }
 
-    // 3. ДОБАВЛЯЕМ ГЕТТЕР, ЧТОБЫ PLAYERJOIN МОГ ПОЛУЧИТЬ ДОСТУП
+    public LanguageManager getLangManager() {
+        return langManager;
+    }
+
     public Provider getProviderManager() {
         return providerManager;
     }
