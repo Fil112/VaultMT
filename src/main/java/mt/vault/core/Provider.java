@@ -25,11 +25,9 @@ public class Provider {
         else {
             plugin.logInfo("Сторонних плагинов не найдено. Запуск встроенной базы данных SQLite...");
 
-            // Получаем стартовый баланс из конфига (по умолчанию 100.0)
-            double startBal = plugin.getConfig().getDouble("economy.start-balance", 100.0);
-
-            // Инициализируем провайдер
-            EconomyProvider sqlite = new SQLiteProvider(plugin.getDataFolder(), startBal);
+            // Инициализируем провайдер (стартовый баланс он теперь сам берет из конфига)
+            SQLiteProvider sqlite = new SQLiteProvider(plugin);
+            sqlite.connect(); // Обязательно вызываем метод подключения к файлу БД
 
             // Устанавливаем его как активный
             setProvider(sqlite);

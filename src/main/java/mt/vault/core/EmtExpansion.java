@@ -10,7 +10,7 @@ public class EmtExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getIdentifier() {
-        return "vaultmt"; // Это значит, что плейсхолдеры будут начинаться с %vaultmt_
+        return "vaultmt";
     }
 
     @Override
@@ -20,26 +20,35 @@ public class EmtExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return "0.0.3-A";
+        return "0.0.5";
     }
 
-    // ВАЖНО: Нельзя заставлять плагин зависать в этом методе (не делай долгих запросов к БД)
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String params) {
-        // PAPI может иногда отправлять null, если плейсхолдер вызывается сервером, а не игроком
         if (player == null) return "";
 
-        // Обрабатываем %vaultmt_balance%
+        EconomyProvider provider = VaultMT.getProvider();
+        if (provider == null) return "0.0";
+
+        // %vaultmt_balance% — просто число
         if (params.equalsIgnoreCase("balance")) {
-            EconomyProvider provider = VaultMT.getProvider();
-            if (provider != null) {
-                // Вызываем метод из твоего API
-                double balance = provider.getBalance(player.getUniqueId());
-                return String.valueOf(balance);
-            }
-            return "0.0";
+            return String.valueOf(provider.getBalance(player.getUniqueId()));
         }
 
-        return null; // Если запросили неизвестный плейсхолдер
+        // %vaultmt_formatted% — баланс с символом валюты (из конфига)
+        if (params.equalsIgnoreCase("formatted")) {
+            double bal = provider.getBalance(player.getUniqueId());
+            String format = VaultMTP.getInstance().getConfig().getString("economy.currency.format", "%.2f $");
+            String symbol = VaultMTP.getInstance().getConfig().getString("economy.currency.symbol", "$");
+            return String.format(format, bal, symbol);
+        }
+
+        // %vaultmt_fee% — текущая комиссия в процентах для инфо-панелей
+        if (params.equalsIgnoreCase("fee")) {
+            double feeRate = VaultMTP.getInstance().getConfig().getDouble("transfer-fee", 0.0);
+            return (feeRate * 100) + "%";
+        }
+
+        return null;
     }
 }

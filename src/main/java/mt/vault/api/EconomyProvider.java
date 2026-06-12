@@ -31,40 +31,23 @@ public interface EconomyProvider {
      */
     boolean createAccount(UUID uuid);
 
-    /**
-     * Получает текущий баланс игрока.
-     *
-     * @param uuid уникальный идентификатор игрока
-     * @return количество средств на счету (0.0, если счета нет)
-     */
+    // =====================================
+    // МЕТОДЫ ДЛЯ ВАЛЮТЫ ПО УМОЛЧАНИЮ
+    // =====================================
+
     double getBalance(UUID uuid);
-
-    /**
-     * Принудительно устанавливает точное значение баланса игроку.
-     *
-     * @param uuid   уникальный идентификатор игрока
-     * @param amount новая сумма баланса
-     * @return TransactionResult с результатом выполнения операции
-     */
     TransactionResult setBalance(UUID uuid, double amount);
-
-    /**
-     * Пополняет счет игрока на указанную сумму.
-     *
-     * @param uuid   уникальный идентификатор игрока
-     * @param amount сумма для пополнения (должна быть > 0)
-     * @return TransactionResult с результатом выполнения операции
-     */
     TransactionResult deposit(UUID uuid, double amount);
-
-    /**
-     * Снимает средства со счета игрока.
-     *
-     * @param uuid   уникальный идентификатор игрока
-     * @param amount сумма для снятия (должна быть > 0)
-     * @return TransactionResult с результатом выполнения операции
-     */
     TransactionResult withdraw(UUID uuid, double amount);
+
+    // =====================================
+    // МУЛЬТИВАЛЮТНЫЕ МЕТОДЫ
+    // =====================================
+
+    double getBalance(UUID uuid, String currency);
+    TransactionResult setBalance(UUID uuid, double amount, String currency);
+    TransactionResult deposit(UUID uuid, double amount, String currency);
+    TransactionResult withdraw(UUID uuid, double amount, String currency);
 
     void close();
 }
