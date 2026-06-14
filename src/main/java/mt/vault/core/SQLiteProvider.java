@@ -13,28 +13,29 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class SQLiteProvider implements EconomyProvider {
 
     private Connection connection;
-    private final VaultMTP plugin;
+    private final VaultPlatform platform;
 
-    public SQLiteProvider(VaultMTP plugin) {
-        this.plugin = plugin;
+    public SQLiteProvider(VaultPlatform platform) {
+        this.platform = platform;
     }
 
     public void connect() {
         try {
-            File dataFolder = new File(plugin.getDataFolder(), "data");
+            File dataFolder = new File(platform.getPluginFolder(), "data");
             if (!dataFolder.exists()) {
                 dataFolder.mkdirs();
             }
             File dbFile = new File(dataFolder, "database.db");
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
             initTables();
-            plugin.getLogger().info("База данных SQLite успешно подключена!");
+            platform.info("База данных SQLite успешно подключена!");
         } catch (SQLException e) {
-            plugin.getLogger().severe("Ошибка при подключении к SQLite!");
+            platform.severe("Ошибка при подключении к SQLite!");
             e.printStackTrace();
         }
     }
@@ -60,12 +61,8 @@ public class SQLiteProvider implements EconomyProvider {
     }
 
     private String getDefaultCurrency() {
-        return plugin.getConfig().getString("economy.default-currency", "mt");
+        return platform.getConfigString("economy.default-currency", "mt");
     }
-
-    // =====================================
-    // БАЗОВЫЕ МЕТОДЫ ИНТЕРФЕЙСА
-    // =====================================
 
     @Override
     public String getName() {
@@ -89,51 +86,15 @@ public class SQLiteProvider implements EconomyProvider {
     @Override
     public boolean createAccount(UUID uuid) {
         if (hasAccount(uuid)) return false;
-
-        // Выдаем стартовый баланс из конфига
-        double startBal = plugin.getConfig().getDouble("economy.start-balance", 100.0);
+        double startBal = platform.getConfigDouble("economy.start-balance", 100.0);
         setBalance(uuid, startBal, getDefaultCurrency());
         return true;
     }
 
     @Override
-    public void close() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // =====================================
-    // ДЕФОЛТНАЯ ВАЛЮТА (ПЕРЕАДРЕСАЦИЯ)
-    // =====================================
-
-    @Override
     public double getBalance(UUID uuid) {
         return getBalance(uuid, getDefaultCurrency());
     }
-
-    @Override
-    public TransactionResult setBalance(UUID uuid, double amount) {
-        return setBalance(uuid, amount, getDefaultCurrency());
-    }
-
-    @Override
-    public TransactionResult deposit(UUID uuid, double amount) {
-        return deposit(uuid, amount, getDefaultCurrency());
-    }
-
-    @Override
-    public TransactionResult withdraw(UUID uuid, double amount) {
-        return withdraw(uuid, amount, getDefaultCurrency());
-    }
-
-    // =====================================
-    // МУЛЬТИВАЛЮТНАЯ РЕАЛИЗАЦИЯ
-    // =====================================
 
     @Override
     public double getBalance(UUID uuid, String currency) {
@@ -152,6 +113,21 @@ public class SQLiteProvider implements EconomyProvider {
     }
 
     @Override
+    public TransactionResult setBalance(UUID uuid, double amount) {
+        return setBalance(uuid, amount, getDefaultCurrency());
+    }
+
+    @Override
+    public TransactionResult deposit(UUID uuid, double amount) {
+        return deposit(uuid, amount, getDefaultCurrency());
+    }
+
+    @Override
+    public TransactionResult withdraw(UUID uuid, double amount) {
+        return withdraw(uuid, amount, getDefaultCurrency());
+    }
+
+    @Override
     public TransactionResult setBalance(UUID uuid, double amount, String currency) {
         String sql = "INSERT OR REPLACE INTO mt_balances (uuid, currency, amount) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -159,7 +135,7 @@ public class SQLiteProvider implements EconomyProvider {
             pstmt.setString(2, currency.toLowerCase());
             pstmt.setDouble(3, amount);
             pstmt.executeUpdate();
-            return TransactionResult.success(amount, amount);
+            return TransactionResult.success(amount, amount, "sync_update");
         } catch (SQLException e) {
             e.printStackTrace();
             return TransactionResult.failure(TransactionResult.Status.FAILURE, e.getMessage());
@@ -181,13 +157,67 @@ public class SQLiteProvider implements EconomyProvider {
         return setBalance(uuid, current - amount, currency);
     }
 
-    // =====================================
-    // МЕТОДЫ ЛОГОВ (БД + Файлы)
-    // =====================================
+    @Override
+    public void close() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public CompletableFuture<Boolean> hasAccountAsync(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> hasAccount(uuid));
+    }
+
+    @Override
+    public CompletableFuture<Boolean> createAccountAsync(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> createAccount(uuid));
+    }
+
+    @Override
+    public CompletableFuture<Double> getBalanceAsync(UUID uuid, String currency) {
+        return CompletableFuture.supplyAsync(() -> getBalance(uuid, currency));
+    }
+
+    @Override
+    public CompletableFuture<TransactionResult> setBalanceAsync(UUID uuid, double amount, String currency, String reason) {
+        return CompletableFuture.supplyAsync(() -> {
+            TransactionResult res = setBalance(uuid, amount, currency);
+            if (res.isSuccess()) {
+                return TransactionResult.success(amount, amount, reason);
+            }
+            return res;
+        });
+    }
+
+    @Override
+    public CompletableFuture<TransactionResult> depositAsync(UUID uuid, double amount, String currency, String reason) {
+        return CompletableFuture.supplyAsync(() -> {
+            TransactionResult res = deposit(uuid, amount, currency);
+            if (res.isSuccess()) {
+                return TransactionResult.success(amount, res.balance(), reason);
+            }
+            return res;
+        });
+    }
+
+    @Override
+    public CompletableFuture<TransactionResult> withdrawAsync(UUID uuid, double amount, String currency, String reason) {
+        return CompletableFuture.supplyAsync(() -> {
+            TransactionResult res = withdraw(uuid, amount, currency);
+            if (res.isSuccess()) {
+                return TransactionResult.success(amount, res.balance(), reason);
+            }
+            return res;
+        });
+    }
 
     public void addLog(UUID uuid, String playerName, String action, double amount, String currency) {
-        PlatformUtil.runAsync(plugin, () -> {
-            // 1. Запись в базу данных SQLite
+        platform.runAsync(() -> {
             String sql = "INSERT INTO mt_logs (uuid, action, amount, currency) VALUES (?, ?, ?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 pstmt.setString(1, uuid.toString());
@@ -199,9 +229,8 @@ public class SQLiteProvider implements EconomyProvider {
                 e.printStackTrace();
             }
 
-            // 2. Сохранение в отдельный текстовый файл
             try {
-                File logsFolder = new File(plugin.getDataFolder(), "logs");
+                File logsFolder = new File(platform.getPluginFolder(), "logs");
                 if (!logsFolder.exists()) {
                     logsFolder.mkdirs();
                 }
@@ -225,7 +254,7 @@ public class SQLiteProvider implements EconomyProvider {
                     pw.println("[" + time + "] " + action + " | Сумма: " + amount + " " + currency);
                 }
             } catch (IOException e) {
-                plugin.getLogger().severe("Ошибка записи лога в файл для " + playerName + ": " + e.getMessage());
+                platform.severe("Ошибка записи лога в файл для " + playerName + ": " + e.getMessage());
             }
         });
     }

@@ -1,5 +1,6 @@
-package mt.vault.core; // Замени на свой пакет
+package mt.vault.bukkit; // Замени на свой пакет
 
+import mt.vault.core.SQLiteProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;

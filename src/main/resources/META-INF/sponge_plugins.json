@@ -1,0 +1,16 @@
+{
+  "loader": {
+    "name": "java_plain",
+    "version": "1.0"
+  },
+  "license": "MT Software License Agreement",
+  "plugins": [
+    {
+      "id": "vaultmt",
+      "name": "VaultMT",
+      "version": "1.0.0",
+      "entrypoint": "mt.vault.sponge.VaultMTSponge",
+      "description": "Core economy plugin and API"
+    }
+  ]
+}

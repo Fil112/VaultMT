@@ -1,49 +1,43 @@
 package mt.vault.api;
 
-/**
- * Представляет неизменяемый результат экономической транзакции.
- */
-public record TransactionResult(
-        Status status,
-        double amount,
-        double balance,
-        String errorMessage
-) {
+public class TransactionResult {
+    private final Status status;
+    private final double amount;
+    private final double balance;
+    private final String errorMessage;
+    private final String reason;
+    private final long timestamp;
 
-    /**
-     * Возможные статусы выполнения транзакции.
-     */
     public enum Status {
-        SUCCESS,             // Операция прошла успешно
-        FAILURE,             // Общая или неизвестная ошибка
-        INSUFFICIENT_FUNDS,  // У игрока недостаточно средств для снятия
-        ACCOUNT_NOT_FOUND    // Банковский счет игрока не существует
+        SUCCESS, FAILURE, INSUFFICIENT_FUNDS, ACCOUNT_NOT_FOUND
     }
 
-    /**
-     * Быстрое создание успешного результата транзакции.
-     *
-     * @param amount  сумма транзакции
-     * @param balance новый баланс после транзакции
-     */
-    public static TransactionResult success(double amount, double balance) {
-        return new TransactionResult(Status.SUCCESS, amount, balance, null);
+    public TransactionResult(Status status, double amount, double balance, String errorMessage, String reason, long timestamp) {
+        this.status = status;
+        this.amount = amount;
+        this.balance = balance;
+        this.errorMessage = errorMessage;
+        this.reason = reason;
+        this.timestamp = timestamp;
     }
 
-    /**
-     * Быстрое создание результата с ошибкой.
-     *
-     * @param status       тип ошибки (не SUCCESS)
-     * @param errorMessage текстовое описание проблемы (опционально)
-     */
+    public static TransactionResult success(double amount, double balance, String reason) {
+        return new TransactionResult(Status.SUCCESS, amount, balance, null, reason, System.currentTimeMillis());
+    }
+
     public static TransactionResult failure(Status status, String errorMessage) {
-        return new TransactionResult(status, 0, 0, errorMessage);
+        return new TransactionResult(status, 0, 0, errorMessage, "none", System.currentTimeMillis());
     }
 
-    /**
-     * Проверяет, была ли транзакция успешной.
-     */
     public boolean isSuccess() {
         return this.status == Status.SUCCESS;
     }
+
+    // Геттеры написаны в стиле record, чтобы не ломать твой остальной код
+    public Status status() { return status; }
+    public double amount() { return amount; }
+    public double balance() { return balance; }
+    public String errorMessage() { return errorMessage; }
+    public String reason() { return reason; }
+    public long timestamp() { return timestamp; }
 }

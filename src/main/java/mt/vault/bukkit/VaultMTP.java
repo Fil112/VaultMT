@@ -1,6 +1,7 @@
-package mt.vault.core;
+package mt.vault.bukkit;
 
-import org.bukkit.Bukkit;
+import mt.vault.bukkit.LanguageManager;
+import mt.vault.core.Provider;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.util.logging.Logger;
 
@@ -30,9 +31,9 @@ public class VaultMTP extends JavaPlugin {
         this.langManager = new LanguageManager(this);
         // Метод loadMessages() теперь автоматически вызывается внутри конструктора LanguageManager
 
-        // 3. Подключаем базу данных (SQLite/MySQL) через твой Provider
+        // 3. Подключаем базу данных через твой Provider
         this.providerManager = new Provider();
-        this.providerManager.setup();
+        this.providerManager.setup(new BukkitPlatform(this));
 
         // 4. Регистрация команд
         if (getCommand("emt") != null) {

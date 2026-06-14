@@ -1,4 +1,4 @@
-package mt.vault.core;
+package mt.vault.bukkit;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import mt.vault.api.EconomyProvider;

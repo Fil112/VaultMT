@@ -1,6 +1,7 @@
-package mt.vault.core;
+package mt.vault.bukkit;
 
 import mt.vault.api.EconomyProvider;
+import mt.vault.core.Provider;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
