@@ -1,20 +1,69 @@
 # VaultMT Localization — English (en_US)
-# The plugin is not fully translated!
 
 messages:
   no-permission: "&cYou do not have permission to execute this command!"
-  no-console: "§cЭту команду может использовать только игрок!"
+  no-console: "&cThis command can only be executed by a player!"
   player-only: "&cThis command can only be executed by a player!"
   unknown-command: "&cUnknown command! Use &e/emt help"
   reload-success: "&a[VaultMT] Configuration and language files successfully reloaded!"
   error-provider: "&cError: Economy is temporarily unavailable!"
   stats-loading: "&7Gathering economy data, please wait..."
   usage-message: "&cUsage: /emt {command} <player> <amount>"
+  not-a-number: "&cError: &e{value} &cis not a valid number!"
   no-amount: "&cThe amount cannot be negative!"
+  player-never-played: "&cPlayer &e{player} &chas never played on this server!"
+  console-needs-player: "&cConsole must specify a player: /emt balance <player>"
 
-  # /emt stats command
+  # Admin Transactions (Sender)
+  give-sender: "&aYou gave &e{amount}$ &fto &b{player}"
+  set-sender: "&aYou set the balance to &e{amount}$ &ffor &b{player}"
+  take-sender: "&aYou took &e{amount}$ &ffrom &b{player}"
+  take-insufficient: "&cThe player has insufficient funds! Current balance: &e{balance}$"
+  transaction-error: "&cAn error occurred during the transaction: {error}"
+
+  # Admin Transactions (Target)
+  give-target: "&aYou received &e{amount}$"
+  set-target: "&6Your balance was administratively set to &e{amount}$"
+  take-target: "&cAn administrator removed &e{amount}$ &cfrom your account"
+
+  # Balance
+  balance-check: "&eBalance of &b{player}&e: &a{balance}$"
+
+  # Pay Command
+  pay-usage: "&cUsage: /emt pay <player> <amount>"
+  pay-zero: "&cThe transfer amount must be greater than zero!"
+  pay-self: "&cYou cannot send money to yourself!"
+  pay-insufficient-fee: "&cInsufficient funds! To transfer {amount}$ with a {fee}% fee, you need &e{total}$"
+  pay-insufficient: "&cYou do not have enough funds for this transfer!"
+  pay-success-fee: "&aSuccessfully transferred &e{amount}$ &fto &b{player} &7(Fee applied: {fee}$)"
+  pay-success: "&aSuccessfully transferred &e{amount}$ &fto &b{player}"
+  pay-received: "&aPlayer &b{player} &asent you &e{amount}$"
+  pay-refunded: "&cTransfer error! Funds have been returned to your account."
+  pay-fail: "&cFailed to deduct funds from your account: {error}"
+
+  # Logs
+  log-usage: "&cUsage: /emt log <player> [page]"
+  page-not-number: "&cPage number must be a valid integer!"
+  log-only-db: "&cLogs are only available when using the built-in database (SQLite/MySQL)!"
+  log-header: "&7=== &eLogs for {player} (Page {page}) &7==="
+  log-empty: "&cNo records found."
+
+  # Stats
   stats-title: "&7================ &eEMT Statistics &7================"
   stats-accounts: "&fActive accounts: &e{count}"
   stats-total: "&fTotal coins in circulation: &e{total}$"
   stats-richest: "&fRichest player: &b{player} &f(&e{balance}$&f)"
   stats-footer: "&7=================================================="
+
+  # Help Menu
+  help-header: "&7================ &eEMT Help &7================"
+  help-balance: "&e/emt balance [player] &7— Check balance"
+  help-pay: "&e/emt pay <player> <amount> &7— Transfer money to a player"
+  help-stats: "&e/emt stats &7— Show server economy statistics"
+  help-give: "&e/emt give <player> <amount> &7— Give coins to a player"
+  help-take: "&e/emt take <player> <amount> &7— Take coins from a player"
+  help-set: "&e/emt set <player> <amount> &7— Set exact balance"
+  help-log: "&e/emt log <player> &7— View transaction history"
+  help-version: "&e/emt version &7— Show plugin version"
+  help-reload: "&e/emt reload &7— Reload plugin configuration"
+  help-footer: "&7========================================="

@@ -1,6 +1,6 @@
 name: VaultMT
 version: '${version}'
-main: mt.vault.bukkit.VaultMTP
+main: mt.vault.bukkit.VaultMTBukkit
 softdepend: [PlaceholderAPI]
 load: POSTWORLD
 authors: [ Keylo ]

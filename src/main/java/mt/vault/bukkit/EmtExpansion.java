@@ -38,14 +38,14 @@ public class EmtExpansion extends PlaceholderExpansion {
         // %vaultmt_formatted% — баланс с символом валюты (из конфига)
         if (params.equalsIgnoreCase("formatted")) {
             double bal = provider.getBalance(player.getUniqueId());
-            String format = VaultMTP.getInstance().getConfig().getString("economy.currency.format", "%.2f $");
-            String symbol = VaultMTP.getInstance().getConfig().getString("economy.currency.symbol", "$");
+            String format = VaultMTBukkit.getInstance().getConfig().getString("economy.currency.format", "%.2f $");
+            String symbol = VaultMTBukkit.getInstance().getConfig().getString("economy.currency.symbol", "$");
             return String.format(format, bal, symbol);
         }
 
         // %vaultmt_fee% — текущая комиссия в процентах для инфо-панелей
         if (params.equalsIgnoreCase("fee")) {
-            double feeRate = VaultMTP.getInstance().getConfig().getDouble("transfer-fee", 0.0);
+            double feeRate = VaultMTBukkit.getInstance().getConfig().getDouble("transfer-fee", 0.0);
             return (feeRate * 100) + "%";
         }
 

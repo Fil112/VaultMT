@@ -25,13 +25,15 @@ storage:
   type: "sqlite"
 
   # Настройки для MySQL (активны только если type: mysql)
-  mysql:
-    host: "localhost"
-    port: 3306
-    database: "vaultmt_db"
-    username: "root"
-    password: "password"
-    use-ssl: false
+  database:
+    type: "sqlite" # Тип базы данных: sqlite или mysql
+    mysql:
+      host: "localhost"
+      port: "3306"
+      database: "vaultmt"
+      username: "root"
+      password: "password123"
+      use-ssl: false
 
   # Параметры производительности
   save-interval: 300 # Интервал сохранения данных

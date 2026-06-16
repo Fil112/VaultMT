@@ -13,13 +13,19 @@ public class Provider {
         this.platform = platform;
         platform.info("Запуск системы экономики...");
 
-        // Пока что для Sponge мы жестко запускаем SQLite.
-        // Адаптер для Essentials мы добавим позже отдельно для Bukkit.
-        platform.info("Запуск встроенной базы данных SQLite...");
-        SQLiteProvider sqlite = new SQLiteProvider(platform);
-        sqlite.connect();
+        String dbType = platform.getConfigString("database.type", "sqlite").toLowerCase();
 
-        setProvider(sqlite);
+        if (dbType.equals("mysql")) {
+            platform.info("Подключение к удаленной базе данных MySQL...");
+            MySQLProvider mysql = new MySQLProvider(platform);
+            mysql.connect();
+            setProvider(mysql);
+        } else {
+            platform.info("Запуск локальной базы данных SQLite...");
+            SQLiteProvider sqlite = new SQLiteProvider(platform);
+            sqlite.connect();
+            setProvider(sqlite);
+        }
     }
 
     public void setProvider(EconomyProvider provider) {

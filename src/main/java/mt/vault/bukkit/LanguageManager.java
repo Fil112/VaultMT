@@ -1,6 +1,5 @@
 package mt.vault.bukkit;
 
-import mt.vault.bukkit.VaultMTP;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -15,10 +14,10 @@ import java.util.Map;
 
 public class LanguageManager {
 
-    private final VaultMTP plugin;
+    private final VaultMTBukkit plugin;
     private final Map<String, String> messageCache = new HashMap<>();
 
-    public LanguageManager(VaultMTP plugin) {
+    public LanguageManager(VaultMTBukkit plugin) {
         this.plugin = plugin;
         init(); // Запускает создание папок, копирование файлов и их загрузку
     }

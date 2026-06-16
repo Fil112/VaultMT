@@ -1,0 +1,5 @@
+name: VaultMT
+version: 1.0.0
+main: mt.vault.bungee.VaultMTBungee
+author: MT Studio
+description: Ядро экономики для связки серверов

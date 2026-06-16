@@ -1,4 +1,4 @@
-package mt.vault.bukkit; // Замени на свой пакет
+package mt.vault.bukkit;
 
 import mt.vault.core.SQLiteProvider;
 import org.bukkit.Bukkit;
@@ -15,8 +15,10 @@ public class EmtCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        LanguageManager lang = VaultMTBukkit.getInstance().getLangManager();
+
         if (args.length == 0) {
-            sendHelp(sender);
+            sendHelp(sender, lang);
             return true;
         }
 
@@ -25,19 +27,19 @@ public class EmtCommand implements CommandExecutor {
         switch (subCommand) {
             case "reload":
                 if (!sender.hasPermission("vaultmt.admin")) {
-                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-permission"));
+                    sender.sendMessage(lang.getMessage("no-permission"));
                     return true;
                 }
 
-                VaultMTP.getInstance().reloadConfig();
-                VaultMTP.getInstance().getLangManager().loadMessages();
-                VaultMTP.getInstance().getProviderManager().reload();
+                VaultMTBukkit.getInstance().reloadConfig();
+                lang.loadMessages();
+                VaultMTBukkit.getInstance().getProviderManager().reload();
 
-                sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("reload-success"));
+                sender.sendMessage(lang.getMessage("reload-success"));
                 break;
 
             case "help":
-                sendHelp(sender);
+                sendHelp(sender, lang);
                 break;
 
             case "version":
@@ -51,14 +53,12 @@ public class EmtCommand implements CommandExecutor {
             case "set":
             case "take":
                 if (!sender.hasPermission("vaultmt.admin")) {
-                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-permission"));
+                    sender.sendMessage(lang.getMessage("no-permission"));
                     return true;
                 }
 
                 if (args.length < 3) {
-                    String usage = VaultMTP.getInstance().getLangManager().getMessage("usage-message")
-                            .replace("{command}", subCommand);
-                    sender.sendMessage(usage);
+                    sender.sendMessage(lang.getMessage("usage-message").replace("{command}", subCommand));
                     return true;
                 }
 
@@ -66,88 +66,95 @@ public class EmtCommand implements CommandExecutor {
                 try {
                     amount = Double.parseDouble(args[2]);
                     if (amount < 0) {
-                        sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-amount"));
+                        sender.sendMessage(lang.getMessage("no-amount"));
                         return true;
                     }
                 } catch (NumberFormatException e) {
-                    sender.sendMessage("§cОшибка: §e" + args[2] + " §cне является числом!");
+                    sender.sendMessage(lang.getMessage("not-a-number").replace("{value}", args[2]));
                     return true;
                 }
 
-                org.bukkit.OfflinePlayer targetOffline = Bukkit.getOfflinePlayer(args[1]);
+                OfflinePlayer targetOffline = Bukkit.getOfflinePlayer(args[1]);
 
                 if (!targetOffline.hasPlayedBefore() && !targetOffline.isOnline()) {
-                    sender.sendMessage("§cИгрок §e" + args[1] + " §cникогда не заходил на сервер!");
+                    sender.sendMessage(lang.getMessage("player-never-played").replace("{player}", args[1]));
                     return true;
                 }
 
                 EconomyProvider provider = mt.vault.api.VaultMT.getProvider();
                 if (provider == null) {
-                    sender.sendMessage("§cОшибка: Экономика временно недоступна!");
-                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("error-provider"));
+                    sender.sendMessage(lang.getMessage("error-provider"));
                     return true;
                 }
 
                 TransactionResult result = null;
+                String targetName = targetOffline.getName();
 
                 if (subCommand.equals("give")) {
                     result = provider.deposit(targetOffline.getUniqueId(), amount);
                     if (result.isSuccess()) {
-                        sender.sendMessage("§aВы выдали §e" + amount + "$ §fигроку §b" + targetOffline.getName());
+                        sender.sendMessage(lang.getMessage("give-sender")
+                                .replace("{amount}", String.valueOf(amount))
+                                .replace("{player}", targetName));
                     }
                 } else if (subCommand.equals("set")) {
                     result = provider.setBalance(targetOffline.getUniqueId(), amount);
                     if (result.isSuccess()) {
-                        sender.sendMessage("§aВы установили баланс §e" + amount + "$ §fигроку §b" + targetOffline.getName());
+                        sender.sendMessage(lang.getMessage("set-sender")
+                                .replace("{amount}", String.valueOf(amount))
+                                .replace("{player}", targetName));
                     }
                 } else if (subCommand.equals("take")) {
                     result = provider.withdraw(targetOffline.getUniqueId(), amount);
                     if (result.isSuccess()) {
-                        sender.sendMessage("§aВы забрали §e" + amount + "$ §fу игрока §b" + targetOffline.getName());
+                        sender.sendMessage(lang.getMessage("take-sender")
+                                .replace("{amount}", String.valueOf(amount))
+                                .replace("{player}", targetName));
                     } else if (result.status() == mt.vault.api.TransactionResult.Status.INSUFFICIENT_FUNDS) {
-                        sender.sendMessage("§cУ игрока недостаточно средств! Текущий баланс: §e" + provider.getBalance(targetOffline.getUniqueId()) + "$");
+                        sender.sendMessage(lang.getMessage("take-insufficient")
+                                .replace("{balance}", String.format("%.2f", provider.getBalance(targetOffline.getUniqueId()))));
                         return true;
                     }
                 }
 
                 if (result != null && !result.isSuccess() && result.status() != mt.vault.api.TransactionResult.Status.INSUFFICIENT_FUNDS) {
-                    sender.sendMessage("§cПроизошла ошибка при операции: " + result.errorMessage());
+                    sender.sendMessage(lang.getMessage("transaction-error").replace("{error}", result.errorMessage()));
                     return true;
                 }
 
                 if (result != null && result.isSuccess() && targetOffline.isOnline() && targetOffline.getPlayer() != null) {
                     Player onlineTarget = targetOffline.getPlayer();
                     if (subCommand.equals("give")) {
-                        onlineTarget.sendMessage("§aВам выдано §e" + amount + "$");
+                        onlineTarget.sendMessage(lang.getMessage("give-target").replace("{amount}", String.valueOf(amount)));
                     } else if (subCommand.equals("set")) {
-                        onlineTarget.sendMessage("§6Ваш баланс административно установлен на §e" + amount + "$");
+                        onlineTarget.sendMessage(lang.getMessage("set-target").replace("{amount}", String.valueOf(amount)));
                     } else if (subCommand.equals("take")) {
-                        onlineTarget.sendMessage("§cАдминистратор изъял у вас §e" + amount + "$");
+                        onlineTarget.sendMessage(lang.getMessage("take-target").replace("{amount}", String.valueOf(amount)));
                     }
                 }
                 break;
 
             case "stats":
                 if (!sender.hasPermission("vaultmt.admin")) {
-                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-permission"));
+                    sender.sendMessage(lang.getMessage("no-permission"));
                     return true;
                 }
 
                 EconomyProvider statsProvider = mt.vault.api.VaultMT.getProvider();
                 if (statsProvider == null) {
-                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("error-provider"));
+                    sender.sendMessage(lang.getMessage("error-provider"));
                     return true;
                 }
 
-                sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("stats-loading"));
+                sender.sendMessage(lang.getMessage("stats-loading"));
 
-                PlatformUtil.runAsync(VaultMTP.getInstance(), () -> {
+                PlatformUtil.runAsync(VaultMTBukkit.getInstance(), () -> {
                     double totalMoney = 0;
                     double topBalance = -1;
                     String richestPlayer = "Никто";
                     int accountCount = 0;
 
-                    for (org.bukkit.OfflinePlayer op : Bukkit.getOfflinePlayers()) {
+                    for (OfflinePlayer op : Bukkit.getOfflinePlayers()) {
                         if (statsProvider.hasAccount(op.getUniqueId())) {
                             double bal = statsProvider.getBalance(op.getUniqueId());
                             totalMoney += bal;
@@ -155,7 +162,7 @@ public class EmtCommand implements CommandExecutor {
 
                             if (bal > topBalance) {
                                 topBalance = bal;
-                                richestPlayer = op.getName() != null ? op.getName() : "Неизвестно (" + op.getUniqueId() + ")";
+                                richestPlayer = op.getName() != null ? op.getName() : "Неизвестно";
                             }
                         }
                     }
@@ -165,14 +172,16 @@ public class EmtCommand implements CommandExecutor {
                     final double finalTopBal = topBalance;
                     final int finalCount = accountCount;
 
-                    PlatformUtil.runSync(VaultMTP.getInstance(), () -> {
-                        sender.sendMessage("§7================ §eСтатистика EMT §7================");
-                        sender.sendMessage("§fАктивных счетов: §e" + finalCount);
-                        sender.sendMessage("§fВсего монет в обороте: §e" + String.format("%.2f", finalTotal) + "$");
+                    PlatformUtil.runSync(VaultMTBukkit.getInstance(), () -> {
+                        sender.sendMessage(lang.getMessage("stats-title"));
+                        sender.sendMessage(lang.getMessage("stats-accounts").replace("{count}", String.valueOf(finalCount)));
+                        sender.sendMessage(lang.getMessage("stats-total").replace("{total}", String.format("%.2f", finalTotal)));
                         if (finalCount > 0) {
-                            sender.sendMessage("§fСамый богатый игрок: §b" + finalRichest + " §f(§e" + String.format("%.2f", finalTopBal) + "$§f)");
+                            sender.sendMessage(lang.getMessage("stats-richest")
+                                    .replace("{player}", finalRichest)
+                                    .replace("{balance}", String.format("%.2f", finalTopBal)));
                         }
-                        sender.sendMessage("§7==================================================");
+                        sender.sendMessage(lang.getMessage("stats-footer"));
                     });
                 });
                 break;
@@ -186,30 +195,32 @@ public class EmtCommand implements CommandExecutor {
                 } else if (sender instanceof Player) {
                     target = (OfflinePlayer) sender;
                 } else {
-                    sender.sendMessage("§cКонсоль должна указывать ник игрока: /emt balance <игрок>");
+                    sender.sendMessage(lang.getMessage("console-needs-player"));
                     return true;
                 }
 
                 EconomyProvider balProvider = mt.vault.api.VaultMT.getProvider();
                 if (balProvider == null) {
-                    sender.sendMessage("§cОшибка: Экономика временно недоступна!");
+                    sender.sendMessage(lang.getMessage("error-provider"));
                     return true;
                 }
 
                 double bal = balProvider.getBalance(target.getUniqueId());
-                sender.sendMessage("§eБаланс §b" + target.getName() + "§e: §a" + String.format("%.2f", bal) + "$");
+                sender.sendMessage(lang.getMessage("balance-check")
+                        .replace("{player}", target.getName() != null ? target.getName() : args[1])
+                        .replace("{balance}", String.format("%.2f", bal)));
                 break;
 
             case "pay":
                 if (!(sender instanceof Player)) {
-                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-console"));
+                    sender.sendMessage(lang.getMessage("no-console"));
                     return true;
                 }
 
                 Player pSender = (Player) sender;
 
                 if (args.length < 3) {
-                    pSender.sendMessage("§cИспользование: /emt pay <игрок> <сумма>");
+                    pSender.sendMessage(lang.getMessage("pay-usage"));
                     return true;
                 }
 
@@ -217,43 +228,46 @@ public class EmtCommand implements CommandExecutor {
                 try {
                     payAmount = Double.parseDouble(args[2]);
                     if (payAmount <= 0) {
-                        pSender.sendMessage("§cСумма перевода должна быть больше нуля!");
+                        pSender.sendMessage(lang.getMessage("pay-zero"));
                         return true;
                     }
                 } catch (NumberFormatException e) {
-                    pSender.sendMessage("§cОшибка: §e" + args[2] + " §cне является числом!");
+                    pSender.sendMessage(lang.getMessage("not-a-number").replace("{value}", args[2]));
                     return true;
                 }
 
                 OfflinePlayer targetP = Bukkit.getOfflinePlayer(args[1]);
 
                 if (!targetP.hasPlayedBefore() && !targetP.isOnline()) {
-                    pSender.sendMessage("§cИгрок §e" + args[1] + " §cникогда не заходил на сервер!");
+                    pSender.sendMessage(lang.getMessage("player-never-played").replace("{player}", args[1]));
                     return true;
                 }
 
                 if (pSender.getUniqueId().equals(targetP.getUniqueId())) {
-                    pSender.sendMessage("§cВы не можете перевести деньги самому себе!");
+                    pSender.sendMessage(lang.getMessage("pay-self"));
                     return true;
                 }
 
                 EconomyProvider payProvider = mt.vault.api.VaultMT.getProvider();
                 if (payProvider == null) {
-                    pSender.sendMessage("§cОшибка: Экономика временно недоступна!");
+                    pSender.sendMessage(lang.getMessage("error-provider"));
                     return true;
                 }
 
-                double feeRate = VaultMTP.getInstance().getConfig().getDouble("settings.transfer-fee",
-                        VaultMTP.getInstance().getConfig().getDouble("transfer-fee", 0.0));
+                double feeRate = VaultMTBukkit.getInstance().getConfig().getDouble("settings.transfer-fee",
+                        VaultMTBukkit.getInstance().getConfig().getDouble("transfer-fee", 0.0));
 
                 double fee = payAmount * feeRate;
                 double totalDeduction = payAmount + fee;
 
                 if (payProvider.getBalance(pSender.getUniqueId()) < totalDeduction) {
                     if (fee > 0) {
-                        pSender.sendMessage("§cУ вас недостаточно средств! Для перевода " + payAmount + "$ с комиссией " + (feeRate * 100) + "% нужно §e" + String.format("%.2f", totalDeduction) + "$");
+                        pSender.sendMessage(lang.getMessage("pay-insufficient-fee")
+                                .replace("{amount}", String.valueOf(payAmount))
+                                .replace("{fee}", String.valueOf(feeRate * 100))
+                                .replace("{total}", String.format("%.2f", totalDeduction)));
                     } else {
-                        pSender.sendMessage("§cУ вас недостаточно средств для перевода!");
+                        pSender.sendMessage(lang.getMessage("pay-insufficient"));
                     }
                     return true;
                 }
@@ -265,28 +279,34 @@ public class EmtCommand implements CommandExecutor {
 
                     if (depositResult.isSuccess()) {
                         if (fee > 0) {
-                            pSender.sendMessage("§aВы успешно перевели §e" + payAmount + "$ §fигроку §b" + targetP.getName() + " §7(Удержана комиссия: " + String.format("%.2f", fee) + "$)");
+                            pSender.sendMessage(lang.getMessage("pay-success-fee")
+                                    .replace("{amount}", String.valueOf(payAmount))
+                                    .replace("{player}", targetP.getName())
+                                    .replace("{fee}", String.format("%.2f", fee)));
                         } else {
-                            pSender.sendMessage("§aВы успешно перевели §e" + payAmount + "$ §fигроку §b" + targetP.getName());
+                            pSender.sendMessage(lang.getMessage("pay-success")
+                                    .replace("{amount}", String.valueOf(payAmount))
+                                    .replace("{player}", targetP.getName()));
                         }
 
                         if (targetP.isOnline() && targetP.getPlayer() != null) {
-                            targetP.getPlayer().sendMessage("§aИгрок §b" + pSender.getName() + " §aперевел вам §e" + payAmount + "$");
+                            targetP.getPlayer().sendMessage(lang.getMessage("pay-received")
+                                    .replace("{player}", pSender.getName())
+                                    .replace("{amount}", String.valueOf(payAmount)));
                         }
                     } else {
                         payProvider.deposit(pSender.getUniqueId(), totalDeduction);
-                        pSender.sendMessage("§cОшибка перевода! Деньги возвращены на ваш счет.");
-                        VaultMTP.getInstance().getLogger().warning("Сбой транзакции /emt pay: " + depositResult.errorMessage());
+                        pSender.sendMessage(lang.getMessage("pay-refunded"));
+                        VaultMTBukkit.getInstance().getLogger().warning("Сбой транзакции /emt pay: " + depositResult.errorMessage());
                     }
                 } else {
-                    pSender.sendMessage("§cНе удалось списать средства с вашего счета: " + withdrawResult.errorMessage());
+                    pSender.sendMessage(lang.getMessage("pay-fail").replace("{error}", withdrawResult.errorMessage()));
                 }
 
                 if (payProvider instanceof SQLiteProvider) {
                     SQLiteProvider sqlProvider = (SQLiteProvider) payProvider;
-                    String currency = VaultMTP.getInstance().getConfig().getString("economy.currency.symbol", "mt");
+                    String currency = VaultMTBukkit.getInstance().getConfig().getString("economy.currency.symbol", "mt");
 
-                    // Запись в базу и в файл с передачей никнеймов!
                     sqlProvider.addLog(pSender.getUniqueId(), pSender.getName(), "Перевод игроку " + targetP.getName(), -totalDeduction, currency);
                     sqlProvider.addLog(targetP.getUniqueId(), targetP.getName(), "Получено от " + pSender.getName(), payAmount, currency);
                 }
@@ -294,18 +314,18 @@ public class EmtCommand implements CommandExecutor {
 
             case "log":
                 if (!sender.hasPermission("vaultmt.admin")) {
-                    sender.sendMessage(VaultMTP.getInstance().getLangManager().getMessage("no-permission"));
+                    sender.sendMessage(lang.getMessage("no-permission"));
                     return true;
                 }
 
                 if (args.length < 2) {
-                    sender.sendMessage("§cИспользование: /emt log <игрок> [страница]");
+                    sender.sendMessage(lang.getMessage("log-usage"));
                     return true;
                 }
 
                 OfflinePlayer logTarget = Bukkit.getOfflinePlayer(args[1]);
                 if (!logTarget.hasPlayedBefore() && !logTarget.isOnline()) {
-                    sender.sendMessage("§cИгрок §e" + args[1] + " §cне найден в базе!");
+                    sender.sendMessage(lang.getMessage("player-never-played").replace("{player}", args[1]));
                     return true;
                 }
 
@@ -315,7 +335,7 @@ public class EmtCommand implements CommandExecutor {
                         page = Integer.parseInt(args[2]);
                         if (page < 1) page = 1;
                     } catch (NumberFormatException e) {
-                        sender.sendMessage("§cНомер страницы должен быть числом!");
+                        sender.sendMessage(lang.getMessage("page-not-number"));
                         return true;
                     }
                 }
@@ -326,47 +346,48 @@ public class EmtCommand implements CommandExecutor {
                 if (prov instanceof SQLiteProvider) {
                     SQLiteProvider sqlProvider = (SQLiteProvider) prov;
 
-                    PlatformUtil.runAsync(VaultMTP.getInstance(), () -> {
+                    PlatformUtil.runAsync(VaultMTBukkit.getInstance(), () -> {
                         List<String> logs = sqlProvider.getLogs(logTarget.getUniqueId(), finalPage);
 
-                        PlatformUtil.runSync(VaultMTP.getInstance(), () -> {
-                            sender.sendMessage("§7=== §eЛоги игрока " + logTarget.getName() + " (Стр " + finalPage + ") §7===");
+                        PlatformUtil.runSync(VaultMTBukkit.getInstance(), () -> {
+                            sender.sendMessage(lang.getMessage("log-header")
+                                    .replace("{player}", logTarget.getName() != null ? logTarget.getName() : args[1])
+                                    .replace("{page}", String.valueOf(finalPage)));
                             if (logs.isEmpty()) {
-                                sender.sendMessage("§cЗаписей не найдено.");
+                                sender.sendMessage(lang.getMessage("log-empty"));
                             } else {
-                                for (String log : logs) {
-                                    sender.sendMessage(log);
+                                for (String logStr : logs) {
+                                    sender.sendMessage(logStr);
                                 }
                             }
                         });
                     });
                 } else {
-                    sender.sendMessage("§cЛоги доступны только при использовании встроенной базы данных (SQLite/MySQL)!");
+                    sender.sendMessage(lang.getMessage("log-only-db"));
                 }
                 break;
 
             default:
-                sender.sendMessage("§cНеизвестная команда! Используйте §e/emt help");
+                sender.sendMessage(lang.getMessage("unknown-command"));
                 break;
         }
 
         return true;
     }
 
-    private void sendHelp(CommandSender sender) {
-        sender.sendMessage("§7================ §eПомощь EMT §7================");
-        sender.sendMessage("§e/emt help §7— Показать это меню");
-        sender.sendMessage("§e/emt balance [игрок] §7— Узнать баланс");
-        sender.sendMessage("§e/emt pay <игрок> <сумма> §7— Перевести деньги игроку");
-        sender.sendMessage("§e/emt stats §7— Показать экономическую статистику сервера");
+    private void sendHelp(CommandSender sender, LanguageManager lang) {
+        sender.sendMessage(lang.getMessage("help-header"));
+        sender.sendMessage(lang.getMessage("help-balance"));
+        sender.sendMessage(lang.getMessage("help-pay"));
+        sender.sendMessage(lang.getMessage("help-stats"));
         if (sender.hasPermission("vaultmt.admin")) {
-            sender.sendMessage("§e/emt give <игрок> <сумма> §7— Выдать монеты игроку");
-            sender.sendMessage("§e/emt take <игрок> <сумма> §7— Забрать монеты у игрока");
-            sender.sendMessage("§e/emt set <игрок> <сумма> §7— Установить точный баланс");
-            sender.sendMessage("§e/emt log <игрок> §7— Посмотреть историю транзакций");
-            sender.sendMessage("§e/emt version §7— Показать версию плагина");
-            sender.sendMessage("§e/emt reload §7— Перезагрузить конфигурацию плагина");
+            sender.sendMessage(lang.getMessage("help-give"));
+            sender.sendMessage(lang.getMessage("help-take"));
+            sender.sendMessage(lang.getMessage("help-set"));
+            sender.sendMessage(lang.getMessage("help-log"));
+            sender.sendMessage(lang.getMessage("help-version"));
+            sender.sendMessage(lang.getMessage("help-reload"));
         }
-        sender.sendMessage("§7=========================================");
+        sender.sendMessage(lang.getMessage("help-footer"));
     }
 }

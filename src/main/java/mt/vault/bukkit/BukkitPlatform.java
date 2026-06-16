@@ -5,9 +5,9 @@ import mt.vault.core.VaultPlatform;
 import java.io.File;
 
 public class BukkitPlatform implements VaultPlatform {
-    private final VaultMTP plugin;
+    private final VaultMTBukkit plugin;
 
-    public BukkitPlatform(VaultMTP plugin) {
+    public BukkitPlatform(VaultMTBukkit plugin) {
         this.plugin = plugin;
     }
 

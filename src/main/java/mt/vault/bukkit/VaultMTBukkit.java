@@ -1,17 +1,21 @@
 package mt.vault.bukkit;
 
-import mt.vault.bukkit.LanguageManager;
+import mt.vault.bridge.BridgeGateway;
+import mt.vault.bridge.BridgeProcessor;
 import mt.vault.core.Provider;
+import mt.vault.core.VaultPlatform; // Добавлен импорт платформы
 import org.bukkit.plugin.java.JavaPlugin;
+
 import java.util.logging.Logger;
 
-public class VaultMTP extends JavaPlugin {
+public class VaultMTBukkit extends JavaPlugin {
 
-    private static VaultMTP instance;
+    private static VaultMTBukkit instance;
     private Logger pluginLogger;
     private String prefix;
     private LanguageManager langManager;
     private Provider providerManager;
+    private VaultPlatform platform; // Сохраняем платформу для переиспользования
 
     @Override
     public void onEnable() {
@@ -29,11 +33,15 @@ public class VaultMTP extends JavaPlugin {
 
         // 2. Инициализируем локализацию СРАЗУ ПОСЛЕ конфига, до баз данных и команд
         this.langManager = new LanguageManager(this);
-        // Метод loadMessages() теперь автоматически вызывается внутри конструктора LanguageManager
 
-        // 3. Подключаем базу данных через твой Provider
+        // 3. Подключаем платформу и базу данных
+        this.platform = new BukkitPlatform(this); // Инициализируем BukkitPlatform
         this.providerManager = new Provider();
-        this.providerManager.setup(new BukkitPlatform(this));
+        this.providerManager.setup(platform);     // Передаем платформу в Provider
+
+        // Создаем обработчик мостов, передаем ему ТУ ЖЕ платформу
+        BridgeProcessor processor = new BridgeProcessor(this.platform, this.providerManager);
+        BridgeGateway.init(processor);
 
         // 4. Регистрация команд
         if (getCommand("emt") != null) {
@@ -54,7 +62,9 @@ public class VaultMTP extends JavaPlugin {
     @Override
     public void onDisable() {
         logInfo("Выключение VaultMT...");
-        // В будущем здесь можно добавить providerManager.close(); для безопасного отключения БД
+        if (providerManager != null) {
+            providerManager.reload(); // Безопасное отключение провайдера/БД
+        }
         logInfo("Плагин выключен.");
     }
 
@@ -66,7 +76,7 @@ public class VaultMTP extends JavaPlugin {
     // ГЕТТЕРЫ ДЛЯ ДОСТУПА ИЗ ДРУГИХ КЛАССОВ
     // ==========================================
 
-    public static VaultMTP getInstance() {
+    public static VaultMTBukkit getInstance() {
         return instance;
     }
 
@@ -76,5 +86,9 @@ public class VaultMTP extends JavaPlugin {
 
     public Provider getProviderManager() {
         return providerManager;
+    }
+
+    public VaultPlatform getPlatform() {
+        return platform;
     }
 }

@@ -1,0 +1,6 @@
+{
+  "id": "vaultmt",
+  "name": "VaultMT",
+  "version": "1.0.0",
+  "main": "mt.vault.velocity.VaultMTVelocity"
+}

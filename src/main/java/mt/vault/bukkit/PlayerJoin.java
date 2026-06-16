@@ -14,7 +14,7 @@ public class PlayerJoin implements Listener {
         Player player = event.getPlayer();
 
         // Получаем нашего менеджера и активную экономику
-        Provider providerManager = VaultMTP.getInstance().getProviderManager();
+        Provider providerManager = VaultMTBukkit.getInstance().getProviderManager();
         if (providerManager == null) return;
 
         EconomyProvider economy = providerManager.get();
@@ -25,7 +25,7 @@ public class PlayerJoin implements Listener {
             if (!economy.hasAccount(player.getUniqueId())) {
                 // Если счета нет — создаем его
                 economy.createAccount(player.getUniqueId());
-                VaultMTP.getInstance().logInfo("Создан новый счет для игрока: " + player.getName());
+                VaultMTBukkit.getInstance().logInfo("Создан новый счет для игрока: " + player.getName());
             }
         }
     }
