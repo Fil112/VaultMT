@@ -36,6 +36,8 @@ public class VaultMTSponge {
     private Provider providerManager;
     private SpongePlatform platform;
 
+    private static LanguageManager languageManager; // Добавляем поле
+
     @Listener
     public void onServerStart(StartedEngineEvent<Server> event) {
         instance = this;
@@ -43,6 +45,9 @@ public class VaultMTSponge {
 
         // 1. Инициализация платформы (создаст папку и конфиги)
         this.platform = new SpongePlatform(this, logger, configDir);
+        languageManager = new LanguageManager(platform);
+
+        this.providerManager = new Provider();
 
         // 2. Инициализация провайдера экономики (создаст базу данных)
         this.providerManager = new Provider();
@@ -79,4 +84,5 @@ public class VaultMTSponge {
     public SpongePlatform getPlatform() {
         return platform;
     }
+    public static LanguageManager getLang() {return languageManager;}
 }

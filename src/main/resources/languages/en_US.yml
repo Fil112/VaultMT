@@ -67,3 +67,11 @@ messages:
   help-version: "&e/emt version &7— Show plugin version"
   help-reload: "&e/emt reload &7— Reload plugin configuration"
   help-footer: "&7========================================="
+
+  # Maximum transfer amount
+  pay-min-limit: "§cMinimum transfer amount: §e{min}$"
+  pay-max-limit: "§cMaximum transfer amount: §e{max}$"
+
+  # Blacklist
+  pay-blacklisted-sender: "§cYour financial transactions have been blocked by the administration!"
+  pay-blacklisted-target: "§cPlayer §b{player} §cis blacklisted from transfers!"

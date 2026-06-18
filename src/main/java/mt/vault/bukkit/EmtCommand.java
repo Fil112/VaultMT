@@ -227,12 +227,26 @@ public class EmtCommand implements CommandExecutor {
                 double payAmount;
                 try {
                     payAmount = Double.parseDouble(args[2]);
-                    if (payAmount <= 0) {
-                        pSender.sendMessage(lang.getMessage("pay-zero"));
-                        return true;
-                    }
                 } catch (NumberFormatException e) {
                     pSender.sendMessage(lang.getMessage("not-a-number").replace("{value}", args[2]));
+                    return true;
+                }
+
+                // 1. Проверка лимитов перевода
+                double minPay = VaultMTBukkit.getInstance().getConfig().getDouble("settings.limits.min-pay", 1.0);
+                double maxPay = VaultMTBukkit.getInstance().getConfig().getDouble("settings.limits.max-pay", 100000.0);
+
+                if (payAmount < minPay) {
+                    String msg = lang.getMessage("pay-min-limit").replace("{min}", String.valueOf(minPay));
+                    if (msg.contains("Missing message")) msg = "§cМинимальная сумма перевода: §e" + minPay + "$";
+                    pSender.sendMessage(msg);
+                    return true;
+                }
+
+                if (payAmount > maxPay) {
+                    String msg = lang.getMessage("pay-max-limit").replace("{max}", String.valueOf(maxPay));
+                    if (msg.contains("Missing message")) msg = "§cМаксимальная сумма перевода: §e" + maxPay + "$";
+                    pSender.sendMessage(msg);
                     return true;
                 }
 
@@ -248,23 +262,46 @@ public class EmtCommand implements CommandExecutor {
                     return true;
                 }
 
+                // 2. Проверка черного списка
+                List<String> blacklist = VaultMTBukkit.getInstance().getConfig().getStringList("settings.blacklist");
+                boolean senderBlocked = false;
+                boolean targetBlocked = false;
+
+                for (String blockedName : blacklist) {
+                    if (blockedName.equalsIgnoreCase(pSender.getName())) senderBlocked = true;
+                    if (targetP.getName() != null && blockedName.equalsIgnoreCase(targetP.getName())) targetBlocked = true;
+                }
+
+                if (senderBlocked) {
+                    String msg = lang.getMessage("pay-blacklisted-sender");
+                    if (msg.contains("Missing message")) msg = "§cВаши финансовые операции заблокированы администрацией!";
+                    pSender.sendMessage(msg);
+                    return true;
+                }
+
+                if (targetBlocked) {
+                    String msg = lang.getMessage("pay-blacklisted-target").replace("{player}", targetP.getName() != null ? targetP.getName() : args[1]);
+                    if (msg.contains("Missing message")) msg = "§cИгрок §b" + (targetP.getName() != null ? targetP.getName() : args[1]) + " §cнаходится в черном списке для переводов!";
+                    pSender.sendMessage(msg);
+                    return true;
+                }
+
                 EconomyProvider payProvider = mt.vault.api.VaultMT.getProvider();
                 if (payProvider == null) {
                     pSender.sendMessage(lang.getMessage("error-provider"));
                     return true;
                 }
 
-                double feeRate = VaultMTBukkit.getInstance().getConfig().getDouble("settings.transfer-fee",
-                        VaultMTBukkit.getInstance().getConfig().getDouble("transfer-fee", 0.0));
-
-                double fee = payAmount * feeRate;
+                // Внедрение Системы Динамического Налога
+                double fee = calculateDynamicFee(payAmount);
                 double totalDeduction = payAmount + fee;
+                double effectiveFeePercent = payAmount > 0 ? (fee / payAmount) * 100.0 : 0.0;
 
                 if (payProvider.getBalance(pSender.getUniqueId()) < totalDeduction) {
                     if (fee > 0) {
                         pSender.sendMessage(lang.getMessage("pay-insufficient-fee")
                                 .replace("{amount}", String.valueOf(payAmount))
-                                .replace("{fee}", String.valueOf(feeRate * 100))
+                                .replace("{fee}", String.format("%.1f", effectiveFeePercent))
                                 .replace("{total}", String.format("%.2f", totalDeduction)));
                     } else {
                         pSender.sendMessage(lang.getMessage("pay-insufficient"));
@@ -325,7 +362,7 @@ public class EmtCommand implements CommandExecutor {
 
                 OfflinePlayer logTarget = Bukkit.getOfflinePlayer(args[1]);
                 if (!logTarget.hasPlayedBefore() && !logTarget.isOnline()) {
-                    sender.sendMessage(lang.getMessage("player-never-played").replace("{player}", args[1]));
+                    sender.sendMessage(logTarget.getName() != null ? logTarget.getName() : args[1]);
                     return true;
                 }
 
@@ -373,6 +410,33 @@ public class EmtCommand implements CommandExecutor {
         }
 
         return true;
+    }
+
+    // Рассчитывает налог на основе порогов из конфига
+    private double calculateDynamicFee(double amount) {
+        org.bukkit.configuration.file.FileConfiguration config = VaultMTBukkit.getInstance().getConfig();
+
+        if (config.getBoolean("settings.dynamic-tax.enabled", false)) {
+            List<String> brackets = config.getStringList("settings.dynamic-tax.brackets");
+            double rate = config.getDouble("settings.dynamic-tax.default-rate", 0.0);
+
+            for (String bracket : brackets) {
+                try {
+                    String[] split = bracket.split(":");
+                    double threshold = Double.parseDouble(split[0]);
+                    double bracketRate = Double.parseDouble(split[1]);
+
+                    if (amount >= threshold) {
+                        rate = bracketRate;
+                    }
+                } catch (Exception ignored) {}
+            }
+            return amount * rate;
+        }
+
+        // Резервный статический вариант (поддержка старого формата)
+        double staticRate = config.getDouble("settings.transfer-fee", config.getDouble("transfer-fee", 0.0));
+        return amount * staticRate;
     }
 
     private void sendHelp(CommandSender sender, LanguageManager lang) {

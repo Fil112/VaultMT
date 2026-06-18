@@ -6,7 +6,7 @@
 
     <groupId>mt.vault</groupId>
     <artifactId>vaultmt</artifactId>
-    <version>1.0.0-Pre3</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>VaultMT</name>
@@ -39,6 +39,19 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/*.MF</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -52,7 +65,8 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>**/*.yml</include>
-                    <include>**/*.json</include> </includes>
+                    <include>**/*.json</include>
+                </includes>
             </resource>
         </resources>
     </build>
@@ -113,6 +127,13 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.spongepowered</groupId>
+            <artifactId>configurate-yaml</artifactId>
+            <version>4.1.2</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

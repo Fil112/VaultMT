@@ -12,4 +12,5 @@ public interface VaultPlatform {
     boolean getConfigBoolean(String path, boolean def);
     void runAsync(Runnable task);
     void runSync(Runnable task);
+    java.util.List<String> getConfigStringList(String path);
 }

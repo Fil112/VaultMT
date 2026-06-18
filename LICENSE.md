@@ -13,7 +13,7 @@ the original copyright notice and this permission notice are included in all
 copies or substantial portions of the software.
 
 3. BRANDING
-The name "VaultMT" and the "MT" brand prefix are protected. Any modified version
+The name and the "MT" brand prefix are protected. Any modified version
 of this software distributed publicly must clearly state that it is a derivative
 work and not an official product of the original author.
 

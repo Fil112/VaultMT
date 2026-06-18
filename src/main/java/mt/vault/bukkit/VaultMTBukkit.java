@@ -53,7 +53,7 @@ public class VaultMTBukkit extends JavaPlugin {
         // 5. Интеграция с PlaceholderAPI
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new EmtExpansion().register();
-            logInfo("PlaceholderAPI найден! Плейсхолдер %vaultmt_balance% зарегистрирован.");
+            logInfo("PlaceholderAPI найден! Плейсхолдеры зарегистрированы.");
         } else {
             logInfo("PlaceholderAPI не найден. Плейсхолдеры отключены.");
         }

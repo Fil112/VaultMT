@@ -55,4 +55,9 @@ public class BukkitPlatform implements VaultPlatform {
     public void runSync(Runnable task) {
         PlatformUtil.runSync(plugin, task);
     }
+
+    @Override
+    public java.util.List<String> getConfigStringList(String path) {
+        return plugin.getConfig().getStringList(path);
+    }
 }
