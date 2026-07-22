@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>mt.vault</groupId>
-    <artifactId>vaultmt</artifactId>
-    <version>1.0.0</version>
+    <artifactId>VaultMT</artifactId>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <name>VaultMT</name>
-    <description>Core economy plugin and API</description>
+    <description>Core economy engine for MT Studio ecosystem</description>
 
     <properties>
         <java.version>1.8</java.version>
@@ -40,6 +40,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -56,6 +57,7 @@
                 </executions>
             </plugin>
         </plugins>
+
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -91,6 +93,10 @@
         <repository>
             <id>papermc</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 

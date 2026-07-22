@@ -13,18 +13,14 @@ public class PlayerJoin implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        // Получаем нашего менеджера и активную экономику
         Provider providerManager = VaultMTBukkit.getInstance().getProviderManager();
         if (providerManager == null) return;
 
         EconomyProvider economy = providerManager.get();
 
-        // Если провайдер экономики успешно загружен
         if (economy != null) {
-            // Проверяем, есть ли у игрока счет по его уникальному ID (UUID)
-            if (!economy.hasAccount(player.getUniqueId())) {
-                // Если счета нет — создаем его
-                economy.createAccount(player.getUniqueId());
+            if (!economy.hasAccount(LegacyAdapter.getUUID(player))) {
+                economy.createAccount(LegacyAdapter.getUUID(player));
                 VaultMTBukkit.getInstance().logInfo("Создан новый счет для игрока: " + player.getName());
             }
         }

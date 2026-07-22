@@ -1,21 +1,50 @@
 name: VaultMT
-version: '${version}'
+version: '${project.version}'
 main: mt.vault.bukkit.VaultMTBukkit
-softdepend: [PlaceholderAPI]
-load: POSTWORLD
+load: STARTUP
+
+softdepend:
+  - PlaceholderAPI
+
 authors: [ Keylo ]
-description: Core economy plugin and API with Folia support.
-website: https://github.com/Keylo/VaultMT
+description: "Core economy engine for MT Studio ecosystem."
+website: "https://github.com/Fil112/VaultMT"
 folia-supported: true
-prefix: mt
+prefix: VaultMT
 
+# ==========================================
+# Регистрация команд
+# ==========================================
 commands:
-  emt:                    # Сюда пишем основную команду
-    description: Основная команда плагина.
-    usage: /emt <команда>
+  emt:
+    description: "Главная команда администрирования VaultMT."
+    usage: "§cИспользование: /emt help"
     permission: vaultmt.admin
+    aliases: [vaultmt, vmt]
 
+  pay:
+    description: "Перевести средства другому игроку."
+    usage: "§cИспользование: /pay <игрок> <сумма>"
+    permission: vaultmt.pay
+
+  balance:
+    description: "Проверить свой или чужой баланс."
+    usage: "§cИспользование: /balance [игрок]"
+    permission: vaultmt.balance
+    aliases: [bal]
+
+# ==========================================
+# Регистрация прав (Permissions)
+# ==========================================
 permissions:
   vaultmt.admin:
-    description: Полный доступ ко всем командам VaultMT.
+    description: "Полный доступ ко всем командам (выдача/списание, статистика, логи, релоад)."
     default: op
+
+  vaultmt.pay:
+    description: "Разрешает использовать команду перевода средств."
+    default: true
+
+  vaultmt.balance:
+    description: "Разрешает проверять баланс."
+    default: true

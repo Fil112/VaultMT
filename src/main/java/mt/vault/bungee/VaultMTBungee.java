@@ -1,12 +1,14 @@
 package mt.vault.bungee;
 
 import net.md_5.bungee.api.plugin.Plugin;
+import mt.vault.core.Provider;
 import mt.vault.core.VaultPlatform;
 
 public class VaultMTBungee extends Plugin {
 
     private static VaultMTBungee instance;
     private VaultPlatform platform;
+    private Provider providerManager;
 
     @Override
     public void onEnable() {
@@ -15,10 +17,17 @@ public class VaultMTBungee extends Plugin {
 
         platform.info("Инициализация VaultMT на BungeeCord/Waterfall...");
 
-        // Регистрация канала связи
+        // 1. Инициализируем базу данных (только MySQL)
+        this.providerManager = new Provider();
+        this.providerManager.setup(platform);
+
+        // 2. Регистрация канала связи
         getProxy().registerChannel("vaultmt:main");
 
-        platform.info("Канал vaultmt:main успешно зарегистрирован!");
+        // 3. Регистрация слушателя
+        getProxy().getPluginManager().registerListener(this, new BungeeMessageListener());
+
+        platform.info("Канал vaultmt:main и экономика успешно запущены!");
     }
 
     public static VaultMTBungee getInstance() {

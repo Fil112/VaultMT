@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import mt.vault.api.EconomyProvider;
 import mt.vault.api.TransactionResult;
 import java.util.List;
+import java.util.UUID;
 
 public class EmtCommand implements CommandExecutor {
 
@@ -45,7 +46,7 @@ public class EmtCommand implements CommandExecutor {
             case "version":
                 sender.sendMessage("§7=====================================");
                 sender.sendMessage("§fPlugin: §fVaultMT (§eEMT§f)");
-                sender.sendMessage("§fVersion: §f1.0.0");
+                sender.sendMessage("§fVersion: §f1.1.0");
                 sender.sendMessage("§7=====================================");
                 break;
 
@@ -89,30 +90,31 @@ public class EmtCommand implements CommandExecutor {
 
                 TransactionResult result = null;
                 String targetName = targetOffline.getName();
+                UUID safeTargetUuid = LegacyAdapter.getUUID(targetOffline);
 
                 if (subCommand.equals("give")) {
-                    result = provider.deposit(targetOffline.getUniqueId(), amount);
+                    result = provider.deposit(safeTargetUuid, amount);
                     if (result.isSuccess()) {
                         sender.sendMessage(lang.getMessage("give-sender")
                                 .replace("{amount}", String.valueOf(amount))
                                 .replace("{player}", targetName));
                     }
                 } else if (subCommand.equals("set")) {
-                    result = provider.setBalance(targetOffline.getUniqueId(), amount);
+                    result = provider.setBalance(safeTargetUuid, amount);
                     if (result.isSuccess()) {
                         sender.sendMessage(lang.getMessage("set-sender")
                                 .replace("{amount}", String.valueOf(amount))
                                 .replace("{player}", targetName));
                     }
                 } else if (subCommand.equals("take")) {
-                    result = provider.withdraw(targetOffline.getUniqueId(), amount);
+                    result = provider.withdraw(safeTargetUuid, amount);
                     if (result.isSuccess()) {
                         sender.sendMessage(lang.getMessage("take-sender")
                                 .replace("{amount}", String.valueOf(amount))
                                 .replace("{player}", targetName));
                     } else if (result.status() == mt.vault.api.TransactionResult.Status.INSUFFICIENT_FUNDS) {
                         sender.sendMessage(lang.getMessage("take-insufficient")
-                                .replace("{balance}", String.format("%.2f", provider.getBalance(targetOffline.getUniqueId()))));
+                                .replace("{balance}", String.format("%.2f", provider.getBalance(safeTargetUuid))));
                         return true;
                     }
                 }
@@ -155,8 +157,9 @@ public class EmtCommand implements CommandExecutor {
                     int accountCount = 0;
 
                     for (OfflinePlayer op : Bukkit.getOfflinePlayers()) {
-                        if (statsProvider.hasAccount(op.getUniqueId())) {
-                            double bal = statsProvider.getBalance(op.getUniqueId());
+                        UUID safeOpUuid = LegacyAdapter.getUUID(op);
+                        if (statsProvider.hasAccount(safeOpUuid)) {
+                            double bal = statsProvider.getBalance(safeOpUuid);
                             totalMoney += bal;
                             accountCount++;
 
@@ -205,7 +208,7 @@ public class EmtCommand implements CommandExecutor {
                     return true;
                 }
 
-                double bal = balProvider.getBalance(target.getUniqueId());
+                double bal = balProvider.getBalance(LegacyAdapter.getUUID(target));
                 sender.sendMessage(lang.getMessage("balance-check")
                         .replace("{player}", target.getName() != null ? target.getName() : args[1])
                         .replace("{balance}", String.format("%.2f", bal)));
@@ -232,7 +235,6 @@ public class EmtCommand implements CommandExecutor {
                     return true;
                 }
 
-                // 1. Проверка лимитов перевода
                 double minPay = VaultMTBukkit.getInstance().getConfig().getDouble("settings.limits.min-pay", 1.0);
                 double maxPay = VaultMTBukkit.getInstance().getConfig().getDouble("settings.limits.max-pay", 100000.0);
 
@@ -257,12 +259,14 @@ public class EmtCommand implements CommandExecutor {
                     return true;
                 }
 
-                if (pSender.getUniqueId().equals(targetP.getUniqueId())) {
+                UUID safeSenderUuid = LegacyAdapter.getUUID(pSender);
+                UUID safeTargetPUuid = LegacyAdapter.getUUID(targetP);
+
+                if (safeSenderUuid.equals(safeTargetPUuid)) {
                     pSender.sendMessage(lang.getMessage("pay-self"));
                     return true;
                 }
 
-                // 2. Проверка черного списка
                 List<String> blacklist = VaultMTBukkit.getInstance().getConfig().getStringList("settings.blacklist");
                 boolean senderBlocked = false;
                 boolean targetBlocked = false;
@@ -292,12 +296,11 @@ public class EmtCommand implements CommandExecutor {
                     return true;
                 }
 
-                // Внедрение Системы Динамического Налога
                 double fee = calculateDynamicFee(payAmount);
                 double totalDeduction = payAmount + fee;
                 double effectiveFeePercent = payAmount > 0 ? (fee / payAmount) * 100.0 : 0.0;
 
-                if (payProvider.getBalance(pSender.getUniqueId()) < totalDeduction) {
+                if (payProvider.getBalance(safeSenderUuid) < totalDeduction) {
                     if (fee > 0) {
                         pSender.sendMessage(lang.getMessage("pay-insufficient-fee")
                                 .replace("{amount}", String.valueOf(payAmount))
@@ -309,10 +312,10 @@ public class EmtCommand implements CommandExecutor {
                     return true;
                 }
 
-                TransactionResult withdrawResult = payProvider.withdraw(pSender.getUniqueId(), totalDeduction);
+                TransactionResult withdrawResult = payProvider.withdraw(safeSenderUuid, totalDeduction);
 
                 if (withdrawResult.isSuccess()) {
-                    TransactionResult depositResult = payProvider.deposit(targetP.getUniqueId(), payAmount);
+                    TransactionResult depositResult = payProvider.deposit(safeTargetPUuid, payAmount);
 
                     if (depositResult.isSuccess()) {
                         if (fee > 0) {
@@ -332,7 +335,7 @@ public class EmtCommand implements CommandExecutor {
                                     .replace("{amount}", String.valueOf(payAmount)));
                         }
                     } else {
-                        payProvider.deposit(pSender.getUniqueId(), totalDeduction);
+                        payProvider.deposit(safeSenderUuid, totalDeduction);
                         pSender.sendMessage(lang.getMessage("pay-refunded"));
                         VaultMTBukkit.getInstance().getLogger().warning("Сбой транзакции /emt pay: " + depositResult.errorMessage());
                     }
@@ -344,8 +347,8 @@ public class EmtCommand implements CommandExecutor {
                     SQLiteProvider sqlProvider = (SQLiteProvider) payProvider;
                     String currency = VaultMTBukkit.getInstance().getConfig().getString("economy.currency.symbol", "mt");
 
-                    sqlProvider.addLog(pSender.getUniqueId(), pSender.getName(), "Перевод игроку " + targetP.getName(), -totalDeduction, currency);
-                    sqlProvider.addLog(targetP.getUniqueId(), targetP.getName(), "Получено от " + pSender.getName(), payAmount, currency);
+                    sqlProvider.addLog(safeSenderUuid, pSender.getName(), "Перевод игроку " + targetP.getName(), -totalDeduction, currency);
+                    sqlProvider.addLog(safeTargetPUuid, targetP.getName(), "Получено от " + pSender.getName(), payAmount, currency);
                 }
                 break;
 
@@ -382,9 +385,10 @@ public class EmtCommand implements CommandExecutor {
 
                 if (prov instanceof SQLiteProvider) {
                     SQLiteProvider sqlProvider = (SQLiteProvider) prov;
+                    UUID safeLogTargetUuid = LegacyAdapter.getUUID(logTarget);
 
                     PlatformUtil.runAsync(VaultMTBukkit.getInstance(), () -> {
-                        List<String> logs = sqlProvider.getLogs(logTarget.getUniqueId(), finalPage);
+                        List<String> logs = sqlProvider.getLogs(safeLogTargetUuid, finalPage);
 
                         PlatformUtil.runSync(VaultMTBukkit.getInstance(), () -> {
                             sender.sendMessage(lang.getMessage("log-header")
@@ -412,7 +416,6 @@ public class EmtCommand implements CommandExecutor {
         return true;
     }
 
-    // Рассчитывает налог на основе порогов из конфига
     private double calculateDynamicFee(double amount) {
         org.bukkit.configuration.file.FileConfiguration config = VaultMTBukkit.getInstance().getConfig();
 
@@ -434,7 +437,6 @@ public class EmtCommand implements CommandExecutor {
             return amount * rate;
         }
 
-        // Резервный статический вариант (поддержка старого формата)
         double staticRate = config.getDouble("settings.transfer-fee", config.getDouble("transfer-fee", 0.0));
         return amount * staticRate;
     }

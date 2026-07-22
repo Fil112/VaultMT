@@ -1,5 +1,9 @@
 package mt.vault.api;
 
+/**
+ * Результат выполнения финансовой транзакции.
+ * Содержит статус, новый баланс и причину ошибки (если транзакция не удалась).
+ */
 public class TransactionResult {
     private final Status status;
     private final double amount;
@@ -9,7 +13,10 @@ public class TransactionResult {
     private final long timestamp;
 
     public enum Status {
-        SUCCESS, FAILURE, INSUFFICIENT_FUNDS, ACCOUNT_NOT_FOUND
+        SUCCESS,
+        FAILURE,
+        INSUFFICIENT_FUNDS,
+        ACCOUNT_NOT_FOUND
     }
 
     public TransactionResult(Status status, double amount, double balance, String errorMessage, String reason, long timestamp) {
@@ -29,11 +36,13 @@ public class TransactionResult {
         return new TransactionResult(status, 0, 0, errorMessage, "none", System.currentTimeMillis());
     }
 
+    /**
+     * @return true, если транзакция прошла успешно.
+     */
     public boolean isSuccess() {
         return this.status == Status.SUCCESS;
     }
 
-    // Геттеры написаны в стиле record, чтобы не ломать твой остальной код
     public Status status() { return status; }
     public double amount() { return amount; }
     public double balance() { return balance; }

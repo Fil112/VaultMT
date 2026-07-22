@@ -15,7 +15,7 @@ public class EmtExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getAuthor() {
-        return "Keylo";
+        return "Keylo"; // Бренд MT
     }
 
     @Override
@@ -32,12 +32,12 @@ public class EmtExpansion extends PlaceholderExpansion {
 
         // %vaultmt_balance% — просто число
         if (params.equalsIgnoreCase("balance")) {
-            return String.valueOf(provider.getBalance(player.getUniqueId()));
+            return String.valueOf(provider.getBalance(LegacyAdapter.getUUID(player)));
         }
 
         // %vaultmt_formatted% — баланс с символом валюты (из конфига)
         if (params.equalsIgnoreCase("formatted")) {
-            double bal = provider.getBalance(player.getUniqueId());
+            double bal = provider.getBalance(LegacyAdapter.getUUID(player));
             String format = VaultMTBukkit.getInstance().getConfig().getString("economy.currency.format", "%.2f $");
             String symbol = VaultMTBukkit.getInstance().getConfig().getString("economy.currency.symbol", "$");
             return String.format(format, bal, symbol);

@@ -1,9 +1,8 @@
 package mt.vault.bukkit;
 
-import mt.vault.bridge.BridgeGateway;
-import mt.vault.bridge.BridgeProcessor;
+import mt.vault.api.VaultMT;
 import mt.vault.core.Provider;
-import mt.vault.core.VaultPlatform; // Добавлен импорт платформы
+import mt.vault.core.VaultPlatform;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Logger;
@@ -15,7 +14,7 @@ public class VaultMTBukkit extends JavaPlugin {
     private String prefix;
     private LanguageManager langManager;
     private Provider providerManager;
-    private VaultPlatform platform; // Сохраняем платформу для переиспользования
+    private VaultPlatform platform;
 
     @Override
     public void onEnable() {
@@ -29,42 +28,45 @@ public class VaultMTBukkit extends JavaPlugin {
         String ymlPrefix = getDescription().getPrefix();
         this.prefix = (ymlPrefix != null && !ymlPrefix.isEmpty()) ? "[" + ymlPrefix + "] " : "[VaultMT] ";
 
-        logInfo("Инициализация ядра VaultMT...");
+        logInfo("Инициализация независимого ядра экономики MT...");
 
-        // 2. Инициализируем локализацию СРАЗУ ПОСЛЕ конфига, до баз данных и команд
+        // 2. Инициализируем локализацию
         this.langManager = new LanguageManager(this);
 
         // 3. Подключаем платформу и базу данных
-        this.platform = new BukkitPlatform(this); // Инициализируем BukkitPlatform
+        this.platform = new BukkitPlatform(this);
         this.providerManager = new Provider();
-        this.providerManager.setup(platform);     // Передаем платформу в Provider
-
-        // Создаем обработчик мостов, передаем ему ТУ ЖЕ платформу
-        BridgeProcessor processor = new BridgeProcessor(this.platform, this.providerManager);
-        BridgeGateway.init(processor);
+        this.providerManager.setup(platform);
 
         // 4. Регистрация команд
         if (getCommand("emt") != null) {
             getCommand("emt").setExecutor(new EmtCommand());
         }
 
-        logInfo("VaultMT успешно запущен! Версия: " + getDescription().getVersion());
-
         // 5. Интеграция с PlaceholderAPI
-        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new EmtExpansion().register();
-            logInfo("PlaceholderAPI найден! Плейсхолдеры зарегистрированы.");
-        } else {
-            logInfo("PlaceholderAPI не найден. Плейсхолдеры отключены.");
+        if (getConfig().getBoolean("api.enable-papi", true)) {
+            if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+                new EmtExpansion().register();
+                logInfo("PlaceholderAPI найден! Плейсхолдеры зарегистрированы.");
+            }
         }
+
+        getServer().getPluginManager().registerEvents(new PlayerJoin(), this);
+
+        logInfo("Движок VaultMT успешно запущен! Версия: " + getDescription().getVersion());
     }
 
     @Override
     public void onDisable() {
         logInfo("Выключение VaultMT...");
-        if (providerManager != null) {
-            providerManager.reload(); // Безопасное отключение провайдера/БД
+        if (VaultMT.hasProvider()) {
+            VaultMT.getProvider().close();
         }
+
+        if (providerManager != null) {
+            providerManager.reload();
+        }
+
         logInfo("Плагин выключен.");
     }
 
@@ -72,23 +74,8 @@ public class VaultMTBukkit extends JavaPlugin {
         getServer().getConsoleSender().sendMessage(prefix + "§a" + message);
     }
 
-    // ==========================================
-    // ГЕТТЕРЫ ДЛЯ ДОСТУПА ИЗ ДРУГИХ КЛАССОВ
-    // ==========================================
-
-    public static VaultMTBukkit getInstance() {
-        return instance;
-    }
-
-    public LanguageManager getLangManager() {
-        return langManager;
-    }
-
-    public Provider getProviderManager() {
-        return providerManager;
-    }
-
-    public VaultPlatform getPlatform() {
-        return platform;
-    }
+    public static VaultMTBukkit getInstance() { return instance; }
+    public LanguageManager getLangManager() { return langManager; }
+    public Provider getProviderManager() { return providerManager; }
+    public VaultPlatform getPlatform() { return platform; }
 }

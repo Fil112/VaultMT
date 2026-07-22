@@ -69,7 +69,7 @@ public class EmtCommandSponge {
                         case "version":
                             sender.sendMessage(text("§7====================================="));
                             sender.sendMessage(text("§fPlugin: §fVaultMT (§eEMT§f) Sponge Edition"));
-                            sender.sendMessage(text("§fVersion: §f1.0.0-Release"));
+                            sender.sendMessage(text("§fVersion: §f1.1.0"));
                             sender.sendMessage(text("§7====================================="));
                             break;
 
